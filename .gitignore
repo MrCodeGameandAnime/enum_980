@@ -1,0 +1,5 @@
+__pycache__/
+*.py[cod]
+/root/results/
+/root/build/
+/ref

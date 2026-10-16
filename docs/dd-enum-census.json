@@ -1,0 +1,339 @@
+{
+  "date": "2026-10-16",
+  "method": "Static AST and source review; no game modules imported and no tests executed",
+  "dd_repository": "C:\\Users\\User\\Documents\\Dev\\Python\\Dungeon Drifters",
+  "dd_head": "2fa5f9d0ca806e5e7dbd41f3ac9073465d26762b",
+  "source_basis": "Working-tree bytes; hashes identify reviewed files independently of commit state",
+  "pr_reference_from_supplied_report": "f1a9f168ad4bb19a487e54a28c81f77863179560",
+  "enum_classes": 38,
+  "enum_members": 231,
+  "source_sha256": {
+    "root/portability/micropython/enum.py": "609ed29724b8ed91d4fe8f41961814c8f3f4c8032650fcac6ffc4b29cd95a5f2",
+    "root/src/app/combat/move.py": "38bf9ce3f474aeddc958d1dc2a8f161a6aeb8a0aa803c9c3e3c4351a89742380",
+    "root/src/app/combat/move_presentation.py": "a1a7518299f960aec737cecca4eda99d164c4c0ebd95e881c568ea1b0379c6ad",
+    "root/src/app/combat/result.py": "56c75dfde612553cecb34b28f220a52b98b4df0d76fa57cad162249a27f54b06",
+    "root/src/app/combat/status_state.py": "f901a09a08a73170593eb0169cb962b1ac82916922bc7bd69e05519cfe5d51d5",
+    "root/src/app/content/route_spec.py": "d3bb27df3301aa436f2a63d95679cff370520e8607fbca7318d1038a5ae86efe",
+    "root/src/app/enemies/definition.py": "21ff8b1219a793f56541d3496ef43565971ab58988262b749a1f21a8d8fe3c58",
+    "root/src/app/game/overworld_session.py": "35b28cb244b5288027960e06dbe903b4678f021ad1f52070cfeb4ff93cd9da34",
+    "root/src/app/game/overworld_state.py": "a741f654fba104469fc7c2f209c2eabbe204305b5e5e139e02845faee2df1891",
+    "root/src/app/persistence/envelope.py": "fb1dd46e5ae8258612849d406b996aad917b217111caeffe5e8c7ffb13c119ac",
+    "root/src/app/persistence/migration.py": "9b6311ea7e9cad428a6fe5510869b902a65ab054730a1bf47acfaae72af3799d",
+    "root/src/app/persistence/ports.py": "fe4e28be422083d4a0caa1c2dc3d130e365d7df02fb41c8a99f80f51afd8a33d",
+    "root/src/app/persistence/save_document.py": "91647cbf50c6dfdf66b97475336161f92ecec6a8bf2000e8347fd1e775470f90",
+    "root/src/app/persistence/save_port_contract.py": "8d8985be9c0eef140806852b13367609a59c189503656ecb32b4aa642c2ee95f",
+    "root/src/app/player/character_run_state.py": "92c2a9c5a2ff160eb11ec6f7286dfbe30df206cf353822e607b9cc50451e5fc5",
+    "root/src/app/player/inventory_action.py": "7f046cb14a6316c1797a534b32e0c2227b603fe52463dee0d7eb60e8be8aa9fd",
+    "root/src/app/player/run_items.py": "297861ede06516613ea9ff497fe65400f928a615cbe8af990766f6728680cb8e",
+    "root/src/app/presentation/battle_models.py": "a1176d947f2a4a75279839698d28cf210ac3399d06d38f61fa9010779546d39a",
+    "root/src/app/presentation/overworld_models.py": "99d6a6cd903a8f0011ada2b82b3ac5e181c5ebdfe912fe4503f7f7734d64af36",
+    "root/tests/test_enum_contract.py": "5cad1863e51f7b4050849676ca2e990b4feaf6926658446959a2b693da69d61d",
+    "root/tests/test_portable_enum.py": "425fedd648d11507eb18380df7d9c6f12c2352db01d84bfd42c205e8d71945cd"
+  },
+  "declarations": [
+    {
+      "file": "src/app/combat/move.py",
+      "line": 9,
+      "class": "MoveKind",
+      "member_count": 3,
+      "all_values_strings": true,
+      "values_unique": true
+    },
+    {
+      "file": "src/app/combat/move.py",
+      "line": 15,
+      "class": "ResourceType",
+      "member_count": 3,
+      "all_values_strings": true,
+      "values_unique": true
+    },
+    {
+      "file": "src/app/combat/move.py",
+      "line": 21,
+      "class": "ScalingAttribute",
+      "member_count": 7,
+      "all_values_strings": true,
+      "values_unique": true
+    },
+    {
+      "file": "src/app/combat/move.py",
+      "line": 31,
+      "class": "TargetType",
+      "member_count": 2,
+      "all_values_strings": true,
+      "values_unique": true
+    },
+    {
+      "file": "src/app/combat/move.py",
+      "line": 36,
+      "class": "DamageType",
+      "member_count": 5,
+      "all_values_strings": true,
+      "values_unique": true
+    },
+    {
+      "file": "src/app/combat/move_presentation.py",
+      "line": 7,
+      "class": "MoveRole",
+      "member_count": 5,
+      "all_values_strings": true,
+      "values_unique": true
+    },
+    {
+      "file": "src/app/combat/result.py",
+      "line": 7,
+      "class": "CombatOutcomeType",
+      "member_count": 41,
+      "all_values_strings": true,
+      "values_unique": true
+    },
+    {
+      "file": "src/app/combat/result.py",
+      "line": 51,
+      "class": "CombatOutcomeTarget",
+      "member_count": 2,
+      "all_values_strings": true,
+      "values_unique": true
+    },
+    {
+      "file": "src/app/combat/status_state.py",
+      "line": 20,
+      "class": "StatusKind",
+      "member_count": 8,
+      "all_values_strings": true,
+      "values_unique": true
+    },
+    {
+      "file": "src/app/content/route_spec.py",
+      "line": 28,
+      "class": "RouteNodeKind",
+      "member_count": 4,
+      "all_values_strings": true,
+      "values_unique": true
+    },
+    {
+      "file": "src/app/enemies/definition.py",
+      "line": 4,
+      "class": "EnemyRank",
+      "member_count": 4,
+      "all_values_strings": true,
+      "values_unique": true
+    },
+    {
+      "file": "src/app/enemies/definition.py",
+      "line": 11,
+      "class": "EnemyRole",
+      "member_count": 7,
+      "all_values_strings": true,
+      "values_unique": true
+    },
+    {
+      "file": "src/app/enemies/definition.py",
+      "line": 21,
+      "class": "EnemyBehavior",
+      "member_count": 1,
+      "all_values_strings": true,
+      "values_unique": true
+    },
+    {
+      "file": "src/app/enemies/definition.py",
+      "line": 25,
+      "class": "EnemyCapability",
+      "member_count": 5,
+      "all_values_strings": true,
+      "values_unique": true
+    },
+    {
+      "file": "src/app/game/overworld_session.py",
+      "line": 49,
+      "class": "OverworldSessionResult",
+      "member_count": 1,
+      "all_values_strings": true,
+      "values_unique": true
+    },
+    {
+      "file": "src/app/game/overworld_state.py",
+      "line": 21,
+      "class": "ContextualRoutePhase",
+      "member_count": 3,
+      "all_values_strings": true,
+      "values_unique": true
+    },
+    {
+      "file": "src/app/persistence/envelope.py",
+      "line": 33,
+      "class": "SyncState",
+      "member_count": 4,
+      "all_values_strings": true,
+      "values_unique": true
+    },
+    {
+      "file": "src/app/persistence/migration.py",
+      "line": 23,
+      "class": "LegacyMigrationStatus",
+      "member_count": 5,
+      "all_values_strings": true,
+      "values_unique": true
+    },
+    {
+      "file": "src/app/persistence/ports.py",
+      "line": 17,
+      "class": "ProfileStoreStatus",
+      "member_count": 3,
+      "all_values_strings": true,
+      "values_unique": true
+    },
+    {
+      "file": "src/app/persistence/ports.py",
+      "line": 23,
+      "class": "ConflictStoreStatus",
+      "member_count": 3,
+      "all_values_strings": true,
+      "values_unique": true
+    },
+    {
+      "file": "src/app/persistence/save_port_contract.py",
+      "line": 8,
+      "class": "SaveLoadStatus",
+      "member_count": 5,
+      "all_values_strings": true,
+      "values_unique": true
+    },
+    {
+      "file": "src/app/player/character_run_state.py",
+      "line": 7,
+      "class": "RunItemId",
+      "member_count": 3,
+      "all_values_strings": true,
+      "values_unique": true
+    },
+    {
+      "file": "src/app/player/character_run_state.py",
+      "line": 13,
+      "class": "PreparedPayloadId",
+      "member_count": 1,
+      "all_values_strings": true,
+      "values_unique": true
+    },
+    {
+      "file": "src/app/player/character_run_state.py",
+      "line": 17,
+      "class": "InfusionKind",
+      "member_count": 2,
+      "all_values_strings": true,
+      "values_unique": true
+    },
+    {
+      "file": "src/app/player/character_run_state.py",
+      "line": 22,
+      "class": "InventoryActionId",
+      "member_count": 2,
+      "all_values_strings": true,
+      "values_unique": true
+    },
+    {
+      "file": "src/app/player/inventory_action.py",
+      "line": 12,
+      "class": "InventoryActionRejectionReason",
+      "member_count": 3,
+      "all_values_strings": true,
+      "values_unique": true
+    },
+    {
+      "file": "src/app/player/run_items.py",
+      "line": 15,
+      "class": "InventoryCommand",
+      "member_count": 2,
+      "all_values_strings": true,
+      "values_unique": true
+    },
+    {
+      "file": "src/app/presentation/battle_models.py",
+      "line": 10,
+      "class": "ActionIntent",
+      "member_count": 6,
+      "all_values_strings": true,
+      "values_unique": true
+    },
+    {
+      "file": "src/app/presentation/battle_models.py",
+      "line": 19,
+      "class": "InteractionPhase",
+      "member_count": 11,
+      "all_values_strings": true,
+      "values_unique": true
+    },
+    {
+      "file": "src/app/presentation/battle_models.py",
+      "line": 33,
+      "class": "InputRejectionReason",
+      "member_count": 9,
+      "all_values_strings": true,
+      "values_unique": true
+    },
+    {
+      "file": "src/app/presentation/battle_models.py",
+      "line": 45,
+      "class": "BattleEventType",
+      "member_count": 13,
+      "all_values_strings": true,
+      "values_unique": true
+    },
+    {
+      "file": "src/app/presentation/battle_models.py",
+      "line": 61,
+      "class": "ActionAvailabilityReason",
+      "member_count": 7,
+      "all_values_strings": true,
+      "values_unique": true
+    },
+    {
+      "file": "src/app/presentation/battle_models.py",
+      "line": 71,
+      "class": "MoveAvailabilityReason",
+      "member_count": 2,
+      "all_values_strings": true,
+      "values_unique": true
+    },
+    {
+      "file": "src/app/presentation/battle_models.py",
+      "line": 76,
+      "class": "InventoryAvailabilityReason",
+      "member_count": 3,
+      "all_values_strings": true,
+      "values_unique": true
+    },
+    {
+      "file": "src/app/presentation/overworld_models.py",
+      "line": 7,
+      "class": "OverworldScreen",
+      "member_count": 13,
+      "all_values_strings": true,
+      "values_unique": true
+    },
+    {
+      "file": "src/app/presentation/overworld_models.py",
+      "line": 23,
+      "class": "OverworldAction",
+      "member_count": 21,
+      "all_values_strings": true,
+      "values_unique": true
+    },
+    {
+      "file": "src/app/presentation/overworld_models.py",
+      "line": 47,
+      "class": "OverworldAvailabilityReason",
+      "member_count": 9,
+      "all_values_strings": true,
+      "values_unique": true
+    },
+    {
+      "file": "src/app/presentation/overworld_models.py",
+      "line": 59,
+      "class": "MapNodeState",
+      "member_count": 3,
+      "all_values_strings": true,
+      "values_unique": true
+    }
+  ]
+}

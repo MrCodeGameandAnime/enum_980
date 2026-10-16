@@ -1,0 +1,963 @@
+{
+  "measured_at_utc": "2026-10-16T08:54:26.464936+00:00",
+  "sources": {
+    "cpython": {
+      "sha256": "f35e542d8c4c1d2b5e910138d726fa48774925f3c4dc5462793ebcb66aa55501"
+    },
+    "dd": {
+      "revision": "2fa5f9d0ca806e5e7dbd41f3ac9073465d26762b",
+      "sha256": "609ed29724b8ed91d4fe8f41961814c8f3f4c8032650fcac6ffc4b29cd95a5f2",
+      "origin": "C:\\Users\\User\\Documents\\Dev\\Python\\Dungeon Drifters\\root\\portability\\micropython\\enum.py"
+    },
+    "pr": {
+      "revision": "f1a9f168ad4bb19a487e54a28c81f77863179560",
+      "sha256": "28ccf75b957ceb74b9cfe23a0114d3feb86ef4759eaa36f5698a56e225d4564c",
+      "origin": "https://api.github.com/repos/IhorNehrutsa/micropython-lib/contents/python-stdlib/enum/enum.py?ref=f1a9f168ad4bb19a487e54a28c81f77863179560",
+      "git_blob_sha1": "edfd42bde4d420fc5a17521b1dc553e3c3dddd72"
+    }
+  },
+  "worker_sha256": "a46873dcd1e5d24586a1674f67d3c4ee27504a1d8928f0b1ec5e422e47abbe24",
+  "commands": {
+    "cpython": [
+      "C:\\Users\\User\\.cache\\codex-runtimes\\codex-primary-runtime\\dependencies\\python\\python.exe",
+      "-I",
+      "C:\\Users\\User\\Documents\\Dev\\Python\\micropython\\enum\\root\\src\\cases.py",
+      "cpython"
+    ],
+    "dd": [
+      "C:/Users/User/AppData/Local/DungeonDrifters/micropython/v1.29.0/source/ports/windows/build-standard/ReleaseWin32/micropython.exe",
+      "C:\\Users\\User\\Documents\\Dev\\Python\\micropython\\enum\\root\\src\\cases.py",
+      "dd",
+      "C:\\Users\\User\\Documents\\Dev\\Python\\micropython\\enum\\root\\vendor\\dd"
+    ],
+    "pr": [
+      "C:/Users/User/AppData/Local/DungeonDrifters/micropython/v1.29.0/source/ports/windows/build-standard/ReleaseWin32/micropython.exe",
+      "C:\\Users\\User\\Documents\\Dev\\Python\\micropython\\enum\\root\\src\\cases.py",
+      "pr",
+      "C:\\Users\\User\\Documents\\Dev\\Python\\micropython\\enum\\root\\vendor\\pr980"
+    ]
+  },
+  "results": {
+    "cpython": {
+      "protocol": 1,
+      "meta": {
+        "implementation": "cpython",
+        "version": [
+          3,
+          12,
+          14
+        ],
+        "platform": "win32",
+        "machine": "unknown",
+        "interpreter_version": "3.12.14 (main, Aug 25 2026, 14:01:42) [MSC v.1944 64 bit (AMD64)]",
+        "enum_file": "C:\\Users\\User\\.cache\\codex-runtimes\\codex-primary-runtime\\dependencies\\python\\Lib\\enum.py"
+      },
+      "rows": {
+        "immediate_name": {
+          "kind": "value",
+          "value": "FAST"
+        },
+        "immediate_value": {
+          "kind": "value",
+          "value": "fast"
+        },
+        "stable_name_value": {
+          "kind": "value",
+          "value": [
+            "FAST",
+            "fast",
+            "FAST",
+            "fast"
+          ]
+        },
+        "lookup_identity": {
+          "kind": "value",
+          "value": true
+        },
+        "repeated_lookup": {
+          "kind": "value",
+          "value": true
+        },
+        "existing_member": {
+          "kind": "value",
+          "value": true
+        },
+        "invalid_value": {
+          "kind": "exception",
+          "type": "ValueError"
+        },
+        "isinstance_enum": {
+          "kind": "value",
+          "value": true
+        },
+        "isinstance_str": {
+          "kind": "value",
+          "value": true
+        },
+        "raw_is_not_enum": {
+          "kind": "value",
+          "value": true
+        },
+        "equals_raw": {
+          "kind": "value",
+          "value": true
+        },
+        "raw_equals_member": {
+          "kind": "value",
+          "value": true
+        },
+        "string_value": {
+          "kind": "value",
+          "value": "fast"
+        },
+        "enum_key_raw_lookup": {
+          "kind": "value",
+          "value": 1
+        },
+        "hash_matches_raw": {
+          "kind": "value",
+          "value": true
+        },
+        "mixed_sequence": {
+          "kind": "value",
+          "value": true
+        },
+        "storage_roundtrip": {
+          "kind": "value",
+          "value": {
+            "identity": true,
+            "enum_instance": true
+          }
+        },
+        "unrelated_class": {
+          "kind": "value",
+          "value": true
+        },
+        "prepared_immediate_name": {
+          "kind": "value",
+          "value": "FAST"
+        },
+        "prepared_immediate_value": {
+          "kind": "value",
+          "value": "fast"
+        },
+        "prepared_stable_name_value": {
+          "kind": "value",
+          "value": [
+            "FAST",
+            "fast",
+            "FAST",
+            "fast"
+          ]
+        },
+        "prepared_lookup_identity": {
+          "kind": "value",
+          "value": true
+        },
+        "prepared_repeated_lookup": {
+          "kind": "value",
+          "value": true
+        },
+        "prepared_existing_member": {
+          "kind": "value",
+          "value": true
+        },
+        "prepared_invalid_value": {
+          "kind": "exception",
+          "type": "ValueError"
+        },
+        "prepared_isinstance_enum": {
+          "kind": "value",
+          "value": true
+        },
+        "prepared_isinstance_str": {
+          "kind": "value",
+          "value": true
+        },
+        "prepared_raw_is_not_enum": {
+          "kind": "value",
+          "value": true
+        },
+        "prepared_equals_raw": {
+          "kind": "value",
+          "value": true
+        },
+        "prepared_raw_equals_member": {
+          "kind": "value",
+          "value": true
+        },
+        "prepared_string_value": {
+          "kind": "value",
+          "value": "fast"
+        },
+        "prepared_enum_key_raw_lookup": {
+          "kind": "value",
+          "value": 1
+        },
+        "prepared_hash_matches_raw": {
+          "kind": "value",
+          "value": true
+        },
+        "prepared_mixed_sequence": {
+          "kind": "value",
+          "value": true
+        },
+        "prepared_storage_roundtrip": {
+          "kind": "value",
+          "value": {
+            "identity": true,
+            "enum_instance": true
+          }
+        },
+        "prepared_unrelated_class": {
+          "kind": "value",
+          "value": true
+        },
+        "members_mapping": {
+          "kind": "value",
+          "value": {
+            "keys": [
+              "FAST",
+              "SLOW"
+            ],
+            "values_are_members": true
+          }
+        },
+        "class_name_lookup": {
+          "kind": "value",
+          "value": "FAST"
+        },
+        "call_name_lookup": {
+          "kind": "exception",
+          "type": "ValueError"
+        },
+        "class_iteration": {
+          "kind": "value",
+          "value": [
+            "FAST",
+            "SLOW"
+          ]
+        },
+        "class_length": {
+          "kind": "value",
+          "value": 2
+        },
+        "declared_order_adapted": {
+          "kind": "value",
+          "value": [
+            "LAST",
+            "FIRST",
+            "MIDDLE"
+          ]
+        },
+        "reassign_member": {
+          "kind": "exception",
+          "type": "AttributeError"
+        },
+        "delete_member": {
+          "kind": "exception",
+          "type": "AttributeError"
+        },
+        "mutate_member_value": {
+          "kind": "exception",
+          "type": "AttributeError"
+        },
+        "raw_key_enum_lookup": {
+          "kind": "value",
+          "value": 1
+        },
+        "member_repr": {
+          "kind": "value",
+          "value": "<Mode.FAST: 'fast'>"
+        },
+        "member_types_shared": {
+          "kind": "value",
+          "value": true
+        },
+        "class_builder_changed": {
+          "kind": "value",
+          "value": false
+        },
+        "class_builder_module_attribute_changed": {
+          "kind": "value",
+          "value": false
+        },
+        "aliases": {
+          "kind": "value",
+          "value": {
+            "same_object": true,
+            "second_name": "A"
+          }
+        },
+        "non_string": {
+          "kind": "exception",
+          "type": "TypeError"
+        },
+        "empty_enum": {
+          "kind": "value",
+          "value": "accepted"
+        },
+        "lowercase_name": {
+          "kind": "value",
+          "value": "fast"
+        },
+        "plain_enum_raw_equality": {
+          "kind": "value",
+          "value": false
+        },
+        "intenum_type": {
+          "kind": "value",
+          "value": {
+            "integer": true,
+            "enum": true
+          }
+        },
+        "control_equals_raw": {
+          "kind": "value",
+          "value": true
+        },
+        "control_raw_equals": {
+          "kind": "value",
+          "value": true
+        },
+        "control_hash": {
+          "kind": "value",
+          "value": true
+        },
+        "control_subclass_key": {
+          "kind": "value",
+          "value": 1
+        },
+        "control_raw_key": {
+          "kind": "value",
+          "value": 1
+        }
+      }
+    },
+    "dd": {
+      "protocol": 1,
+      "rows": {
+        "prepared_immediate_value": {
+          "value": "fast",
+          "kind": "value"
+        },
+        "non_string": {
+          "type": "TypeError",
+          "kind": "exception"
+        },
+        "raw_is_not_enum": {
+          "value": true,
+          "kind": "value"
+        },
+        "prepared_existing_member": {
+          "value": true,
+          "kind": "value"
+        },
+        "class_iteration": {
+          "type": "TypeError",
+          "kind": "exception"
+        },
+        "raw_equals_member": {
+          "value": true,
+          "kind": "value"
+        },
+        "prepared_repeated_lookup": {
+          "value": true,
+          "kind": "value"
+        },
+        "aliases": {
+          "type": "ValueError",
+          "kind": "exception"
+        },
+        "mutate_member_value": {
+          "value": "allowed",
+          "kind": "value"
+        },
+        "prepared_mixed_sequence": {
+          "value": true,
+          "kind": "value"
+        },
+        "string_value": {
+          "value": "fast",
+          "kind": "value"
+        },
+        "control_raw_key": {
+          "type": "KeyError",
+          "kind": "exception"
+        },
+        "immediate_name": {
+          "value": "FAST",
+          "kind": "value"
+        },
+        "prepared_string_value": {
+          "value": "fast",
+          "kind": "value"
+        },
+        "immediate_value": {
+          "value": "fast",
+          "kind": "value"
+        },
+        "mixed_sequence": {
+          "value": true,
+          "kind": "value"
+        },
+        "equals_raw": {
+          "value": true,
+          "kind": "value"
+        },
+        "control_raw_equals": {
+          "value": true,
+          "kind": "value"
+        },
+        "prepared_equals_raw": {
+          "value": true,
+          "kind": "value"
+        },
+        "repeated_lookup": {
+          "value": true,
+          "kind": "value"
+        },
+        "stable_name_value": {
+          "value": [
+            "FAST",
+            "fast",
+            "FAST",
+            "fast"
+          ],
+          "kind": "value"
+        },
+        "member_repr": {
+          "value": "'fast'",
+          "kind": "value"
+        },
+        "delete_member": {
+          "value": "allowed",
+          "kind": "value"
+        },
+        "intenum_type": {
+          "type": "AttributeError",
+          "kind": "exception"
+        },
+        "declared_order_adapted": {
+          "type": "TypeError",
+          "kind": "exception"
+        },
+        "lookup_identity": {
+          "value": true,
+          "kind": "value"
+        },
+        "prepared_stable_name_value": {
+          "value": [
+            "FAST",
+            "fast",
+            "FAST",
+            "fast"
+          ],
+          "kind": "value"
+        },
+        "prepared_invalid_value": {
+          "type": "ValueError",
+          "kind": "exception"
+        },
+        "empty_enum": {
+          "type": "TypeError",
+          "kind": "exception"
+        },
+        "prepared_immediate_name": {
+          "value": "FAST",
+          "kind": "value"
+        },
+        "plain_enum_raw_equality": {
+          "type": "AttributeError",
+          "kind": "exception"
+        },
+        "prepared_raw_is_not_enum": {
+          "value": true,
+          "kind": "value"
+        },
+        "enum_key_raw_lookup": {
+          "value": 1,
+          "kind": "value"
+        },
+        "control_hash": {
+          "value": true,
+          "kind": "value"
+        },
+        "isinstance_str": {
+          "value": true,
+          "kind": "value"
+        },
+        "lowercase_name": {
+          "type": "TypeError",
+          "kind": "exception"
+        },
+        "invalid_value": {
+          "type": "ValueError",
+          "kind": "exception"
+        },
+        "prepared_isinstance_enum": {
+          "value": true,
+          "kind": "value"
+        },
+        "existing_member": {
+          "value": true,
+          "kind": "value"
+        },
+        "control_equals_raw": {
+          "value": true,
+          "kind": "value"
+        },
+        "reassign_member": {
+          "value": "allowed",
+          "kind": "value"
+        },
+        "prepared_isinstance_str": {
+          "value": true,
+          "kind": "value"
+        },
+        "storage_roundtrip": {
+          "value": {
+            "enum_instance": true,
+            "identity": true
+          },
+          "kind": "value"
+        },
+        "prepared_raw_equals_member": {
+          "value": true,
+          "kind": "value"
+        },
+        "unrelated_class": {
+          "value": true,
+          "kind": "value"
+        },
+        "hash_matches_raw": {
+          "value": true,
+          "kind": "value"
+        },
+        "call_name_lookup": {
+          "type": "ValueError",
+          "kind": "exception"
+        },
+        "prepared_unrelated_class": {
+          "value": true,
+          "kind": "value"
+        },
+        "prepared_storage_roundtrip": {
+          "value": {
+            "enum_instance": true,
+            "identity": true
+          },
+          "kind": "value"
+        },
+        "class_name_lookup": {
+          "type": "TypeError",
+          "kind": "exception"
+        },
+        "member_types_shared": {
+          "value": true,
+          "kind": "value"
+        },
+        "isinstance_enum": {
+          "value": true,
+          "kind": "value"
+        },
+        "class_length": {
+          "type": "TypeError",
+          "kind": "exception"
+        },
+        "control_subclass_key": {
+          "value": 1,
+          "kind": "value"
+        },
+        "prepared_enum_key_raw_lookup": {
+          "value": 1,
+          "kind": "value"
+        },
+        "prepared_hash_matches_raw": {
+          "value": true,
+          "kind": "value"
+        },
+        "prepared_lookup_identity": {
+          "value": true,
+          "kind": "value"
+        },
+        "class_builder_module_attribute_changed": {
+          "value": false,
+          "kind": "value"
+        },
+        "members_mapping": {
+          "value": {
+            "values_are_members": true,
+            "keys": [
+              "slow",
+              "fast"
+            ]
+          },
+          "kind": "value"
+        },
+        "raw_key_enum_lookup": {
+          "type": "KeyError",
+          "kind": "exception"
+        },
+        "class_builder_changed": {
+          "value": true,
+          "kind": "value"
+        }
+      },
+      "meta": {
+        "version": [
+          1,
+          29,
+          0
+        ],
+        "machine": "win32 [MSC v.1951 32 bit] version",
+        "interpreter_version": "3.4.0; MicroPython v1.29.0 on 2026-09-16",
+        "enum_file": "C:\\Users\\User\\Documents\\Dev\\Python\\micropython\\enum\\root\\vendor\\dd/enum.py",
+        "platform": "win32",
+        "implementation": "micropython"
+      }
+    },
+    "pr": {
+      "protocol": 1,
+      "rows": {
+        "prepared_immediate_value": {
+          "value": "fast",
+          "kind": "value"
+        },
+        "non_string": {
+          "type": "TypeError",
+          "kind": "exception"
+        },
+        "raw_is_not_enum": {
+          "value": true,
+          "kind": "value"
+        },
+        "prepared_existing_member": {
+          "value": true,
+          "kind": "value"
+        },
+        "class_iteration": {
+          "type": "KeyError",
+          "kind": "exception"
+        },
+        "raw_equals_member": {
+          "value": true,
+          "kind": "value"
+        },
+        "prepared_repeated_lookup": {
+          "value": true,
+          "kind": "value"
+        },
+        "aliases": {
+          "value": {
+            "second_name": "B",
+            "same_object": false
+          },
+          "kind": "value"
+        },
+        "mutate_member_value": {
+          "type": "AttributeError",
+          "kind": "exception"
+        },
+        "prepared_mixed_sequence": {
+          "value": true,
+          "kind": "value"
+        },
+        "string_value": {
+          "value": "fast",
+          "kind": "value"
+        },
+        "control_raw_key": {
+          "type": "KeyError",
+          "kind": "exception"
+        },
+        "immediate_name": {
+          "type": "AttributeError",
+          "kind": "exception"
+        },
+        "prepared_string_value": {
+          "value": "fast",
+          "kind": "value"
+        },
+        "immediate_value": {
+          "type": "AttributeError",
+          "kind": "exception"
+        },
+        "mixed_sequence": {
+          "value": false,
+          "kind": "value"
+        },
+        "equals_raw": {
+          "value": true,
+          "kind": "value"
+        },
+        "control_raw_equals": {
+          "value": true,
+          "kind": "value"
+        },
+        "prepared_equals_raw": {
+          "value": true,
+          "kind": "value"
+        },
+        "repeated_lookup": {
+          "value": true,
+          "kind": "value"
+        },
+        "stable_name_value": {
+          "type": "AttributeError",
+          "kind": "exception"
+        },
+        "member_repr": {
+          "value": "<Mode.FAST: 'fast'>",
+          "kind": "value"
+        },
+        "delete_member": {
+          "value": "allowed",
+          "kind": "value"
+        },
+        "intenum_type": {
+          "value": {
+            "enum": false,
+            "integer": true
+          },
+          "kind": "value"
+        },
+        "declared_order_adapted": {
+          "value": [
+            "MIDDLE",
+            "LAST",
+            "FIRST"
+          ],
+          "kind": "value"
+        },
+        "lookup_identity": {
+          "value": true,
+          "kind": "value"
+        },
+        "prepared_stable_name_value": {
+          "value": [
+            "FAST",
+            "fast",
+            "FAST",
+            "fast"
+          ],
+          "kind": "value"
+        },
+        "prepared_invalid_value": {
+          "type": "ValueError",
+          "kind": "exception"
+        },
+        "empty_enum": {
+          "value": "accepted",
+          "kind": "value"
+        },
+        "prepared_immediate_name": {
+          "value": "FAST",
+          "kind": "value"
+        },
+        "plain_enum_raw_equality": {
+          "value": true,
+          "kind": "value"
+        },
+        "prepared_raw_is_not_enum": {
+          "value": true,
+          "kind": "value"
+        },
+        "enum_key_raw_lookup": {
+          "value": 1,
+          "kind": "value"
+        },
+        "control_hash": {
+          "value": true,
+          "kind": "value"
+        },
+        "isinstance_str": {
+          "value": true,
+          "kind": "value"
+        },
+        "lowercase_name": {
+          "value": "fast",
+          "kind": "value"
+        },
+        "invalid_value": {
+          "type": "ValueError",
+          "kind": "exception"
+        },
+        "prepared_isinstance_enum": {
+          "value": false,
+          "kind": "value"
+        },
+        "existing_member": {
+          "value": false,
+          "kind": "value"
+        },
+        "control_equals_raw": {
+          "value": true,
+          "kind": "value"
+        },
+        "reassign_member": {
+          "value": "allowed",
+          "kind": "value"
+        },
+        "prepared_isinstance_str": {
+          "value": true,
+          "kind": "value"
+        },
+        "storage_roundtrip": {
+          "type": "AttributeError",
+          "kind": "exception"
+        },
+        "prepared_raw_equals_member": {
+          "value": true,
+          "kind": "value"
+        },
+        "unrelated_class": {
+          "value": true,
+          "kind": "value"
+        },
+        "hash_matches_raw": {
+          "value": true,
+          "kind": "value"
+        },
+        "call_name_lookup": {
+          "value": "FAST",
+          "kind": "value"
+        },
+        "prepared_unrelated_class": {
+          "value": true,
+          "kind": "value"
+        },
+        "prepared_storage_roundtrip": {
+          "value": {
+            "enum_instance": false,
+            "identity": true
+          },
+          "kind": "value"
+        },
+        "class_name_lookup": {
+          "type": "TypeError",
+          "kind": "exception"
+        },
+        "member_types_shared": {
+          "value": false,
+          "kind": "value"
+        },
+        "isinstance_enum": {
+          "value": false,
+          "kind": "value"
+        },
+        "class_length": {
+          "type": "TypeError",
+          "kind": "exception"
+        },
+        "control_subclass_key": {
+          "value": 1,
+          "kind": "value"
+        },
+        "prepared_enum_key_raw_lookup": {
+          "value": 1,
+          "kind": "value"
+        },
+        "prepared_hash_matches_raw": {
+          "value": true,
+          "kind": "value"
+        },
+        "prepared_lookup_identity": {
+          "value": true,
+          "kind": "value"
+        },
+        "class_builder_module_attribute_changed": {
+          "value": false,
+          "kind": "value"
+        },
+        "members_mapping": {
+          "value": {
+            "values_are_members": false,
+            "keys": [
+              "slow",
+              "fast"
+            ]
+          },
+          "kind": "value"
+        },
+        "raw_key_enum_lookup": {
+          "type": "KeyError",
+          "kind": "exception"
+        },
+        "class_builder_changed": {
+          "value": false,
+          "kind": "value"
+        }
+      },
+      "meta": {
+        "version": [
+          1,
+          29,
+          0
+        ],
+        "machine": "win32 [MSC v.1951 32 bit] version",
+        "interpreter_version": "3.4.0; MicroPython v1.29.0 on 2026-09-16",
+        "enum_file": "C:\\Users\\User\\Documents\\Dev\\Python\\micropython\\enum\\root\\vendor\\pr980/enum.py",
+        "platform": "win32",
+        "implementation": "micropython"
+      }
+    }
+  },
+  "requirements": {
+    "R01": {
+      "cpython": true,
+      "dd": true,
+      "pr": false
+    },
+    "R02": {
+      "cpython": true,
+      "dd": true,
+      "pr": false
+    },
+    "R03": {
+      "cpython": true,
+      "dd": true,
+      "pr": true
+    },
+    "R04": {
+      "cpython": true,
+      "dd": true,
+      "pr": false
+    },
+    "R05": {
+      "cpython": true,
+      "dd": true,
+      "pr": true
+    },
+    "R06": {
+      "cpython": true,
+      "dd": true,
+      "pr": false
+    },
+    "R07": {
+      "cpython": true,
+      "dd": true,
+      "pr": true
+    },
+    "R08": {
+      "cpython": true,
+      "dd": true,
+      "pr": true
+    },
+    "R09": {
+      "cpython": true,
+      "dd": true,
+      "pr": false
+    },
+    "R10": {
+      "cpython": true,
+      "dd": true,
+      "pr": false
+    },
+    "R11": {
+      "cpython": true,
+      "dd": true,
+      "pr": true
+    }
+  }
+}

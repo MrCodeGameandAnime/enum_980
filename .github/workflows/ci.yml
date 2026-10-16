@@ -1,0 +1,100 @@
+name: Enum investigation
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: enum-ci-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  PYTHONDONTWRITEBYTECODE: '1'
+  PYTHONOPTIMIZE: '0'
+
+jobs:
+  verify:
+    name: CPython and both MicroPython builds
+    runs-on: windows-2025-vs2026
+    timeout-minutes: 30
+    defaults:
+      run:
+        shell: pwsh
+    steps:
+      - name: Check out investigation
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          persist-credentials: false
+
+      - name: Set up CPython 3.12
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7
+        with:
+          python-version: '3.12'
+
+      - name: Locate MSBuild
+        run: |
+          New-Item -ItemType Directory -Force root/results/ci | Out-Null
+          $vswhere = Join-Path ${env:ProgramFiles(x86)} 'Microsoft Visual Studio/Installer/vswhere.exe'
+          $msbuild = & $vswhere -latest -products '*' -requires Microsoft.Component.MSBuild -find 'MSBuild/**/Bin/MSBuild.exe' | Select-Object -First 1
+          if (-not $msbuild) { throw 'MSBuild was not found' }
+          "MSBUILD_PATH=$msbuild" | Add-Content $env:GITHUB_ENV
+          python --version
+          & $msbuild -version -nologo
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+      - name: Check out stock MicroPython 1.29.0
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          repository: micropython/micropython
+          ref: 0fd6c573ea815774668bbb16b8e197c8822368b2 # v1.29.0
+          path: root/build/stock
+          persist-credentials: false
+
+      - name: Build stock Windows MicroPython
+        run: |
+          $props = (Resolve-Path root/config/stock.props).Path
+          $python = (Get-Command python).Source
+          & $env:MSBUILD_PATH root/build/stock/ports/windows/micropython.vcxproj /m /p:Configuration=Release /p:Platform=Win32 /p:PlatformToolset=v145 "/p:CustomPropsFile=$props" "/p:PyPython=$python" /verbosity:minimal *> root/results/ci/stock-build.log
+          $buildExit = $LASTEXITCODE
+          Get-Content root/results/ci/stock-build.log -Tail 40
+          if ($buildExit -ne 0) { exit $buildExit }
+          $runtime = (Resolve-Path root/build/stock/ports/windows/build-standard/ReleaseWin32/micropython.exe).Path
+          "MICROPYTHON_EXECUTABLE=$runtime" | Add-Content $env:GITHUB_ENV
+
+      - name: Run harness tests with MicroPython integration enabled
+        run: python -B -m unittest discover -s root/tests -v
+
+      - name: Run stock three-way comparison
+        run: python -B root/src/compare.py --micropython "$env:MICROPYTHON_EXECUTABLE" --out root/results/stock
+
+      - name: Prepare pinned experimental sources
+        run: python -B root/src/prepare_pr1061.py
+
+      - name: Build experimental MicroPython
+        run: |
+          ./root/src/build-pr1061.ps1 -Python (Get-Command python).Source -MSBuild $env:MSBUILD_PATH *> root/results/ci/experimental-build.log
+          $buildExit = $LASTEXITCODE
+          Get-Content root/results/ci/experimental-build.log -Tail 40
+          if ($buildExit -ne 0) { exit $buildExit }
+
+      - name: Probe metaclass features and run experimental comparison
+        run: python -B root/src/check_pr1061.py
+
+      - name: Collect experimental reports
+        if: success()
+        run: |
+          New-Item -ItemType Directory -Force root/results/experimental | Out-Null
+          Copy-Item docs/pr1061-comparison.md, docs/pr1061-results.json root/results/experimental/
+
+      - name: Retain reports and logs
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: enum-investigation-${{ github.run_id }}-${{ github.run_attempt }}
+          path: root/results/
+          if-no-files-found: warn
+          retention-days: 14

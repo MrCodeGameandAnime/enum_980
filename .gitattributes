@@ -1,0 +1,6 @@
+* text=auto eol=lf
+*.pdf binary
+/root/vendor/** -text
+
+# The recorded reports pin the exact shared worker bytes.
+/root/src/cases.py -text
