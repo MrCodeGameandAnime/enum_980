@@ -1,3 +1,5 @@
+> **Current revision:** [qualified dictionary-key correction](dictionary-fix.md) and [complete patch series](../root/dictionary_final/patches/manifest.json). The prior profile report finding is resolved; earlier revisions below are historical.
+
 > **Current revision:** [qualified lifecycle correction](lifecycle-fix.md) and [final patch manifest](../root/lifecycle_final/patches/manifest.json). Earlier candidates and reports below are historical.
 
 > **Final review:** [diff review and remaining core issue](final-review.md),

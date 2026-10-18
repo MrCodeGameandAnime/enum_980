@@ -1,0 +1,59 @@
+"""Bidirectional StrEnum dictionary-key interoperability."""
+
+import json
+from enum import StrEnum
+
+
+class Mode(StrEnum):
+    FAST = "fast"
+    SLOW = "slow"
+
+
+def check(value, message):
+    if not value:
+        raise AssertionError(message)
+
+
+def reads():
+    check({"fast": 1}[Mode.FAST] == 1, "raw key/member lookup")
+    check({Mode.FAST: 1}["fast"] == 1, "member key/raw lookup")
+    check(Mode.FAST in {"fast": 1}, "member containment")
+    check({"fast": 1}.get(Mode.FAST) == 1, "member get")
+
+
+def writes():
+    data = {"fast": 1}
+    data[Mode.FAST] = 2
+    check(len(data) == 1 and data["fast"] == 2, "equal key replacement")
+    check(type(next(iter(data))) is str, "original raw key retained")
+    data.update({Mode.FAST: 3})
+    check(len(data) == 1 and data["fast"] == 3, "mapping update")
+    check(data.setdefault(Mode.FAST, 4) == 3 and len(data) == 1, "setdefault")
+
+
+def removals():
+    data = {"fast": 1}
+    check(data.pop(Mode.FAST) == 1 and not data, "member pop")
+    data = {"fast": 1}
+    del data[Mode.FAST]
+    check(not data, "member deletion")
+
+
+def deduplication():
+    data = dict.fromkeys(["fast", Mode.FAST], 3)
+    check(len(data) == 1 and data[Mode.FAST] == 3, "fromkeys")
+    data = {"fast": 1, Mode.FAST: 2}
+    check(len(data) == 1 and data["fast"] == 2, "literal deduplication")
+    check(list(Mode.FAST) == ["f", "a", "s", "t"], "member string iteration")
+
+
+TESTS = (reads, writes, removals, deduplication)
+failures = []
+for test in TESTS:
+    try:
+        test()
+    except Exception as error:
+        failures.append([test.__name__, type(error).__name__, str(error)])
+print(json.dumps({"checks": len(TESTS), "failures": failures}))
+if failures:
+    raise AssertionError("StrEnum dictionary-key regressions")

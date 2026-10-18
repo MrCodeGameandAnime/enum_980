@@ -1,0 +1,53 @@
+{
+  "core_repository": "micropython/micropython",
+  "core_base": "0fd6c573ea815774668bbb16b8e197c8822368b2",
+  "core_version": [
+    1,
+    29,
+    0
+  ],
+  "library_base": "c3b5aaeb61c33ee13c70a6d3dfcd95a8b185e297",
+  "prerequisite": {
+    "repository": "andrewleech/micropython",
+    "commit": "b5df14fe6560cce5fb23758692baad8f37955c88",
+    "parent": "2dc2e30d98ee225070e990586526f8e43b3c95a2",
+    "patch_sha256": "5467516eeaa98639f377bf5f2239bd9e7b1703194db7d4f96de577af9ebfefd3"
+  },
+  "author": "MrCodeGameAndAnime <MrCodeGameAndAnime@gmail.com>",
+  "publication": "held for user review",
+  "core_apply_order": [
+    "0001-metaclass-prerequisite-original.patch",
+    "0002-json-string-subclasses.patch",
+    "0003-dictionary-mapping-input.patch",
+    "0004-metaclass-corrections.patch",
+    "0005-runtime-regression-tests.patch",
+    "0007-metaclass-lifecycle.patch",
+    "0008-metaclass-lifecycle-tests.patch",
+    "0009-dictionary-cross-type-keys.patch",
+    "0010-dictionary-key-regressions.patch"
+  ],
+  "library_patch": "0006-typed-strenum-library.patch",
+  "sha256": {
+    "0001-metaclass-prerequisite-original.patch": "5467516eeaa98639f377bf5f2239bd9e7b1703194db7d4f96de577af9ebfefd3",
+    "0002-json-string-subclasses.patch": "fe2c62996cdc18c9fd72908406a164503238f5076131b26473910ceaab37954a",
+    "0003-dictionary-mapping-input.patch": "fd62d7a44b293a856383ccf298fa49cbb4ed2242bd554e3883beded1ec61f9c7",
+    "0004-metaclass-corrections.patch": "3ef472d6ea4e979b42dbb193d18afd475e1ad43153cd155e3de4c78f03d2353c",
+    "0005-runtime-regression-tests.patch": "dcfbfbcbf194c2f3879df51c46e3ca39c91d34fbb8e22598b1d785e906d11b31",
+    "0006-typed-strenum-library.patch": "f01caf355cf829bf48f2c0ec7f54bbd2b8236f2502c6ce459bea4e5513d63514",
+    "0007-metaclass-lifecycle.patch": "08bfb833965dee099921e56789807d79defa690cca9653e67cb60eb4f9a3a390",
+    "0008-metaclass-lifecycle-tests.patch": "ebfd4399fa9636a15d134db277633cb8b02e681e615af54db749278005e64dc1",
+    "0009-dictionary-cross-type-keys.patch": "ecc8ca5029e169c15523176946a9bea923a8f40be3bbf61a13e333743730302b",
+    "0010-dictionary-key-regressions.patch": "715cdd16453620499469a85eebed9143d0187fbd6f5a836899550c3285fa5dac",
+    "0011-strenum-dictionary-tests.patch": "93519708a0ac13abc21699e1c76802614f0982d2b85909fa7f9ff43b3715a2cb"
+  },
+  "application_verified": true,
+  "additional_core_base": "9a3a0c0d5ea946a4a1b6ff0e3f3087c8adbcac01",
+  "revision": "Dictionary cross-type equality in interned-string maps; preserve original keys and custom hash/equality",
+  "author_metadata_note": "New review diffs remain uncommitted user work; original prerequisite author/sign-off stays unchanged. No publication authorized.",
+  "resolved_issue": "Reverse string-subclass dictionary-key lookup and equal-key duplication",
+  "library_apply_order": [
+    "0006-typed-strenum-library.patch",
+    "0011-strenum-dictionary-tests.patch"
+  ],
+  "export_correction": "Library patch context regenerated from the actual UTF-8 baseline; previous Windows default decoding corrupted README preimage context. Applied candidate contents are unchanged."
+}

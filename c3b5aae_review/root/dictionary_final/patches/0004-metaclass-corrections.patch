@@ -1,0 +1,266 @@
+--- a/py/objtype.c
++++ b/py/objtype.c
+@@ -46,6 +46,11 @@
+ 
+ static mp_obj_t mp_obj_new_type(qstr name, mp_obj_t bases_tuple, mp_obj_t locals_dict, const mp_obj_type_t *metaclass);
+ static mp_obj_t mp_obj_is_subclass(mp_obj_t object, mp_obj_t classinfo);
++
++static bool is_type_object(mp_const_obj_t object) {
++    return mp_obj_is_obj(object) &&
++        mp_obj_is_subclass_fast(MP_OBJ_FROM_PTR(mp_obj_get_type(object)), MP_OBJ_FROM_PTR(&mp_type_type));
++}
+ static mp_obj_t static_class_method_make_new(const mp_obj_type_t *self_in, size_t n_args, size_t n_kw, const mp_obj_t *args);
+ static mp_obj_t type___new__(size_t n_args, const mp_obj_t *args);
+ static MP_DEFINE_CONST_FUN_OBJ_VAR_BETWEEN(type___new___obj, 1, 4, type___new__);
+@@ -1020,7 +1025,27 @@
+ #endif
+ 
+ static void type_print(const mp_print_t *print, mp_obj_t self_in, mp_print_kind_t kind) {
++    #if MICROPY_PY_METACLASS_OPS
++    const mp_obj_type_t *meta = mp_obj_get_type(self_in);
++    if (meta != &mp_type_type) {
++        mp_obj_t method[3] = {MP_OBJ_NULL};
++        mp_load_method_maybe(MP_OBJ_FROM_PTR(meta), kind == PRINT_STR ? MP_QSTR___str__ : MP_QSTR___repr__, method);
++        if (method[0] == MP_OBJ_NULL && kind == PRINT_STR) {
++            mp_load_method_maybe(MP_OBJ_FROM_PTR(meta), MP_QSTR___repr__, method);
++        }
++        if (method[0] != MP_OBJ_NULL) {
++            method[2] = self_in;
++            mp_obj_t value = mp_call_method_n_kw(1, 0, method);
++            if (!mp_obj_is_str(value)) {
++                mp_raise_TypeError(MP_ERROR_TEXT("metaclass repr must return str"));
++            }
++            mp_obj_print_helper(print, value, PRINT_STR);
++            return;
++        }
++    }
++    #else
+     (void)kind;
++    #endif
+     mp_obj_type_t *self = MP_OBJ_TO_PTR(self_in);
+     mp_printf(print, "<class '%q'>", (qstr)self->name);
+ }
+@@ -1039,6 +1064,25 @@
+             // args[1] = bases tuple
+             // args[2] = locals dict
+ 
++            size_t base_count;
++            mp_obj_t *base_items;
++            if (!mp_obj_is_type(args[1], &mp_type_tuple)) {
++                mp_raise_TypeError(MP_ERROR_TEXT("bases must be a tuple"));
++            }
++            mp_obj_tuple_get(args[1], &base_count, &base_items);
++            for (size_t i = 0; i < base_count; ++i) {
++                if (!is_type_object(base_items[i])) {
++                    mp_raise_TypeError(MP_ERROR_TEXT("bases must be types"));
++                }
++                const mp_obj_type_t *candidate = mp_obj_get_type(base_items[i]);
++                if (mp_obj_is_subclass_fast(MP_OBJ_FROM_PTR(type_in), MP_OBJ_FROM_PTR(candidate))) {
++                    continue;
++                }
++                if (!mp_obj_is_subclass_fast(MP_OBJ_FROM_PTR(candidate), MP_OBJ_FROM_PTR(type_in))) {
++                    mp_raise_TypeError(MP_ERROR_TEXT("metaclass conflict"));
++                }
++                type_in = candidate;
++            }
+             // Check if metaclass has custom __new__ (not inherited from type)
+             if (type_in != &mp_type_type) {
+                 mp_obj_t dest[2] = {MP_OBJ_NULL, MP_OBJ_NULL};
+@@ -1072,24 +1116,18 @@
+         mp_obj_t dest[2] = {MP_OBJ_NULL, MP_OBJ_NULL};
+         mp_load_method_maybe(MP_OBJ_FROM_PTR(metaclass), MP_QSTR___call__, dest);
+         if (dest[0] != MP_OBJ_NULL) {
+-            // Found custom __call__, call it with (cls, *args, **kwargs)
+-            mp_obj_t *new_args;
++            // Method binding plus cls and every positional/keyword argument.
++            size_t count = 3 + n_args + 2 * n_kw;
+             mp_obj_t stack_args[8];
+-
+-            if (n_args < 8) {
+-                new_args = stack_args;
+-            } else {
+-                new_args = m_new(mp_obj_t, n_args + 1);
+-            }
+-
+-            new_args[0] = self_in;
+-            memcpy(new_args + 1, args, sizeof(mp_obj_t) * n_args);
+-            mp_obj_t result = mp_call_function_n_kw(dest[0], n_args + 1, n_kw, new_args);
+-
+-            if (n_args >= 8) {
+-                m_del(mp_obj_t, new_args, n_args + 1);
+-            }
+-
++            mp_obj_t *new_args = count <= MP_ARRAY_SIZE(stack_args) ? stack_args : m_new(mp_obj_t, count);
++            new_args[0] = dest[0];
++            new_args[1] = dest[1];
++            new_args[2] = self_in;
++            memcpy(new_args + 3, args, sizeof(mp_obj_t) * (n_args + 2 * n_kw));
++            mp_obj_t result = mp_call_method_n_kw(n_args + 1, n_kw, new_args);
++            if (new_args != stack_args) {
++                m_del(mp_obj_t, new_args, count);
++            }
+             return result;
+         }
+     }
+@@ -1142,7 +1180,31 @@
+ }
+ static MP_DEFINE_CONST_FUN_OBJ_VAR_BETWEEN(type___init___obj, 1, 4, type___init__);
+ 
+-static void type_attr(mp_obj_t self_in, qstr attr, mp_obj_t *dest) {
++static void type_attr_raw(mp_obj_t self_in, qstr attr, mp_obj_t *dest);
++
++static mp_obj_t type_setattr(mp_obj_t cls, mp_obj_t name, mp_obj_t value) {
++    if (!is_type_object(cls)) { mp_raise_TypeError(MP_ERROR_TEXT("expected type")); }
++    mp_obj_t dest[2] = {MP_OBJ_SENTINEL, value};
++    type_attr_raw(cls, mp_obj_str_get_qstr(name), dest);
++    if (dest[0] != MP_OBJ_NULL) {
++        mp_raise_msg(&mp_type_AttributeError, MP_ERROR_TEXT("cannot set class attribute"));
++    }
++    return mp_const_none;
++}
++static MP_DEFINE_CONST_FUN_OBJ_3(type_setattr_obj, type_setattr);
++
++static mp_obj_t type_delattr(mp_obj_t cls, mp_obj_t name) {
++    if (!is_type_object(cls)) { mp_raise_TypeError(MP_ERROR_TEXT("expected type")); }
++    mp_obj_t dest[2] = {MP_OBJ_SENTINEL, MP_OBJ_NULL};
++    type_attr_raw(cls, mp_obj_str_get_qstr(name), dest);
++    if (dest[0] != MP_OBJ_NULL) {
++        mp_raise_msg(&mp_type_AttributeError, MP_ERROR_TEXT("class attribute not found"));
++    }
++    return mp_const_none;
++}
++static MP_DEFINE_CONST_FUN_OBJ_2(type_delattr_obj, type_delattr);
++
++static void type_attr_raw(mp_obj_t self_in, qstr attr, mp_obj_t *dest) {
+     mp_obj_type_t *self = MP_OBJ_TO_PTR(self_in);
+     // Allow types with custom metaclasses that inherit from type
+     assert(mp_obj_is_subclass_fast(MP_OBJ_FROM_PTR(self->base.type),
+@@ -1189,6 +1251,14 @@
+             return;
+         }
+         #endif
++        if (self == &mp_type_type && attr == MP_QSTR___setattr__) {
++            dest[0] = MP_OBJ_FROM_PTR(&type_setattr_obj);
++            return;
++        }
++        if (self == &mp_type_type && attr == MP_QSTR___delattr__) {
++            dest[0] = MP_OBJ_FROM_PTR(&type_delattr_obj);
++            return;
++        }
+         // Only provide type.__new__ when looking up __new__ on the type class itself
+         // Other classes should continue with normal lookup to find object.__new__
+         if (attr == MP_QSTR___new__ && self == &mp_type_type) {
+@@ -1281,7 +1351,45 @@
+     }
+ }
+ 
++static void type_attr(mp_obj_t self_in, qstr attr, mp_obj_t *dest) {
++    #if MICROPY_PY_METACLASS_OPS
++    const mp_obj_type_t *meta = mp_obj_get_type(self_in);
++    if (dest[0] != MP_OBJ_NULL && meta != &mp_type_type) {
++        mp_obj_t method[5] = {MP_OBJ_NULL};
++        bool deleting = dest[1] == MP_OBJ_NULL;
++        mp_load_method_maybe(MP_OBJ_FROM_PTR(meta), deleting ? MP_QSTR___delattr__ : MP_QSTR___setattr__, method);
++        if (method[0] != MP_OBJ_NULL) {
++            method[2] = self_in;
++            method[3] = MP_OBJ_NEW_QSTR(attr);
++            method[4] = dest[1];
++            mp_call_method_n_kw(deleting ? 2 : 3, 0, method);
++            dest[0] = MP_OBJ_NULL;
++            return;
++        }
++    }
++    #endif
++    type_attr_raw(self_in, attr, dest);
++}
++
+ #if MICROPY_PY_METACLASS_OPS
++static mp_obj_t type_subscr(mp_obj_t self_in, mp_obj_t index, mp_obj_t value) {
++    const mp_obj_type_t *meta = mp_obj_get_type(self_in);
++    if (meta == &mp_type_type) {
++        return MP_OBJ_NULL;
++    }
++    qstr name = value == MP_OBJ_SENTINEL ? MP_QSTR___getitem__ :
++        value == MP_OBJ_NULL ? MP_QSTR___delitem__ : MP_QSTR___setitem__;
++    mp_obj_t method[5] = {MP_OBJ_NULL};
++    mp_load_method_maybe(MP_OBJ_FROM_PTR(meta), name, method);
++    if (method[0] == MP_OBJ_NULL) {
++        return MP_OBJ_NULL;
++    }
++    method[2] = self_in;
++    method[3] = index;
++    method[4] = value;
++    return mp_call_method_n_kw(value == MP_OBJ_SENTINEL || value == MP_OBJ_NULL ? 2 : 3, 0, method);
++}
++
+ static mp_obj_t type_unary_op(mp_unary_op_t op, mp_obj_t self_in) {
+     // Handle unary operations on type objects (e.g., len(EnumClass))
+     // by looking up special methods in the metaclass
+@@ -1401,6 +1509,7 @@
+     call, type_call,
+     unary_op, type_unary_op,
+     binary_op, type_binary_op,
++    subscr, type_subscr,
+     attr, type_attr
+     );
+ #else
+@@ -1648,7 +1757,7 @@
+     // Per CPython: "If the second argument is an object, isinstance(obj, type) must be true.
+     // If the second argument is a type, issubclass(type2, type) must be true (this is useful for classmethods)."
+     const mp_obj_type_t *second_arg_type = mp_obj_get_type(args[1]);
+-    mp_obj_t second_arg_obj = second_arg_type == &mp_type_type ? args[1] : MP_OBJ_FROM_PTR(second_arg_type);
++    mp_obj_t second_arg_obj = is_type_object(args[1]) ? args[1] : MP_OBJ_FROM_PTR(second_arg_type);
+     if (mp_obj_is_subclass(second_arg_obj, args[0]) == mp_const_false) {
+         mp_raise_TypeError(MP_ERROR_TEXT("incorrect subclass"));
+     }
+@@ -1667,7 +1776,7 @@
+     assert(mp_obj_is_type(self_in, &mp_type_super));
+     mp_obj_super_t *self = MP_OBJ_TO_PTR(self_in);
+ 
+-    assert(mp_obj_is_type(self->type, &mp_type_type));
++    assert(is_type_object(self->type));
+ 
+     mp_obj_type_t *type = MP_OBJ_TO_PTR(self->type);
+ 
+@@ -1707,7 +1816,7 @@
+         size_t len = parent_tuple->len;
+         const mp_obj_t *items = parent_tuple->items;
+         for (size_t i = 0; i < len; i++) {
+-            assert(mp_obj_is_type(items[i], &mp_type_type));
++            assert(is_type_object(items[i]));
+             if (MP_OBJ_TO_PTR(items[i]) == &mp_type_object) {
+                 // The "object" type will be searched at the end of this function,
+                 // and we don't want to lookup native methods in object.
+@@ -1768,7 +1877,7 @@
+         // not equivalent classes, keep searching base classes
+ 
+         // object should always be a type object, but just return false if it's not
+-        if (!mp_obj_is_type(object, &mp_type_type)) {
++        if (!is_type_object(object)) {
+             return false;
+         }
+ 
+@@ -1805,13 +1914,7 @@
+     size_t len;
+     mp_obj_t *items;
+     // Check if classinfo is a type (either mp_type_type or instance of a metaclass)
+-    bool is_class = mp_obj_is_type(classinfo, &mp_type_type);
+-    if (!is_class && mp_obj_is_obj(classinfo)) {
+-        // Check if it's an instance of a metaclass (i.e., its type is a subclass of type)
+-        const mp_obj_type_t *classinfo_type = mp_obj_get_type(classinfo);
+-        is_class = mp_obj_is_instance_type(classinfo_type) &&
+-            mp_obj_is_subclass_fast(MP_OBJ_FROM_PTR(classinfo_type), MP_OBJ_FROM_PTR(&mp_type_type));
+-    }
++    bool is_class = is_type_object(classinfo);
+ 
+     if (is_class) {
+         len = 1;
+@@ -1832,7 +1935,7 @@
+ }
+ 
+ static mp_obj_t mp_builtin_issubclass(mp_obj_t object, mp_obj_t classinfo) {
+-    if (!mp_obj_is_type(object, &mp_type_type)) {
++    if (!is_type_object(object)) {
+         mp_raise_TypeError(MP_ERROR_TEXT("issubclass() arg 1 must be a class"));
+     }
+     return mp_obj_is_subclass(object, classinfo);

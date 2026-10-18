@@ -1,0 +1,350 @@
+"""Metaclass allocation/initialization lifecycle, checked against native CPython."""
+
+try:
+    import json
+
+    _probe_events = []
+
+    class _ProbeMeta(type):
+        def __new__(meta, name, bases, namespace):
+            return type.__new__(meta, name, bases, namespace)
+
+        def __init__(cls, name, bases, namespace):
+            _probe_events.append(name)
+
+    class _Probe(metaclass=_ProbeMeta):
+        pass
+
+    if _probe_events != ["_Probe"]:
+        raise TypeError("metaclass initialization unavailable")
+except (ImportError, TypeError, AttributeError):
+    print("SKIP")
+    raise SystemExit(0)
+
+
+def check(value, message):
+    if not value:
+        raise AssertionError(message)
+
+
+def rejected(error, operation):
+    try:
+        operation()
+    except error:
+        return
+    raise AssertionError("expected " + error.__name__)
+
+
+def class_order():
+    events = []
+
+    class Meta(type):
+        def __new__(meta, name, bases, namespace):
+            events.append("new-before")
+            cls = type.__new__(meta, name, bases, namespace)
+            cls.ready = True
+            events.append("new-after")
+            return cls
+
+        def __init__(cls, name, bases, namespace):
+            check(cls.ready, "init must see completed new")
+            events.append("init")
+
+    class Sample(metaclass=Meta):
+        pass
+
+    check(events == ["new-before", "new-after", "init"], "class statement order")
+    check(type(Sample) is Meta, "declared metaclass")
+
+
+def inherited_order():
+    events = []
+
+    class Parent(type):
+        def __new__(meta, name, bases, namespace):
+            events.append("new-before")
+            cls = type.__new__(meta, name, bases, namespace)
+            events.append("new-after")
+            return cls
+
+        def __init__(cls, name, bases, namespace):
+            events.append("init")
+
+    class Meta(Parent):
+        pass
+
+    base = Meta("Base", (), {})
+    check(events == ["new-before", "new-after", "init"], "direct metaclass call")
+    events[:] = []
+
+    class Child(base):
+        pass
+
+    check(events == ["new-before", "new-after", "init"], "inherited class hooks")
+    check(type(Child) is Meta, "inherited metaclass")
+
+
+def type_factory():
+    events = []
+
+    class Meta(type):
+        def __new__(meta, name, bases, namespace):
+            events.append("new-before")
+            cls = type.__new__(meta, name, bases, namespace)
+            events.append("new-after")
+            return cls
+
+        def __init__(cls, name, bases, namespace):
+            events.append("init")
+
+    base = Meta("Base", (), {})
+    events[:] = []
+    child = type("Child", (base,), {})
+    check(type(child) is Meta, "type factory selects base metaclass")
+    check(events == ["new-before", "new-after", "init"], "type factory lifecycle")
+
+
+def allocation_only():
+    events = []
+
+    class Meta(type):
+        def __init__(cls, name, bases, namespace):
+            events.append(name)
+
+    raw = type.__new__(Meta, "Raw", (), {})
+    check(type(raw) is Meta and events == [], "type.__new__ must not initialize")
+    Meta.__init__(raw, "Raw", (), {})
+    check(events == ["Raw"], "explicit initialization remains available")
+    made = Meta("Made", (), {})
+    check(type(made) is Meta and events == ["Raw", "Made"], "default new initializes once")
+
+
+def discarded_allocation():
+    events = []
+
+    class Meta(type):
+        def __new__(meta, name, bases, namespace):
+            type.__new__(meta, name, bases, namespace)
+            return "replacement"
+
+        def __init__(cls, name, bases, namespace):
+            events.append("init")
+
+    check(Meta("Sample", (), {}) == "replacement", "unrelated return value")
+    check(events == [], "discarded class must not initialize")
+
+
+def existing_result():
+    events = []
+
+    class Meta(type):
+        def __new__(meta, name, bases, namespace):
+            return existing
+
+        def __init__(cls, name, bases, namespace):
+            check(cls is existing, "initialize returned instance")
+            events.append(name)
+
+    existing = type.__new__(Meta, "Existing", (), {})
+    events[:] = []
+    result = Meta("Requested", (), {})
+    check(result is existing and events == ["Requested"], "existing result initialized once")
+
+
+def returned_subclass_metaclass():
+    events = []
+
+    class Meta(type):
+        def __new__(meta, name, bases, namespace):
+            return existing
+
+        def __init__(cls, name, bases, namespace):
+            events.append("parent-init")
+
+    class Derived(Meta):
+        def __init__(cls, name, bases, namespace):
+            events.append("derived-init")
+
+    existing = type.__new__(Derived, "Existing", (), {})
+    events[:] = []
+    check(Meta("Requested", (), {}) is existing, "returned subclass identity")
+    check(events == ["derived-init"], "use actual returned object's init")
+
+
+def new_exception():
+    events = []
+
+    class Meta(type):
+        def __new__(meta, name, bases, namespace):
+            type.__new__(meta, name, bases, namespace)
+            raise ValueError("new failed")
+
+        def __init__(cls, name, bases, namespace):
+            events.append("init")
+
+    rejected(ValueError, lambda: Meta("Bad", (), {}))
+    check(events == [], "new exception must prevent initialization")
+
+
+def init_return():
+    class Meta(type):
+        def __init__(cls, name, bases, namespace):
+            return 1  # noqa: PLE0101 - exercise invalid initializer result
+
+    rejected(TypeError, lambda: Meta("Bad", (), {}))
+
+
+def init_exception():
+    events = []
+
+    class Meta(type):
+        def __new__(meta, name, bases, namespace):
+            cls = type.__new__(meta, name, bases, namespace)
+            events.append("new-after")
+            return cls
+
+        def __init__(cls, name, bases, namespace):
+            events.append("init")
+            raise ValueError("init failed")
+
+    rejected(ValueError, lambda: Meta("Bad", (), {}))
+    check(events == ["new-after", "init"], "init exception follows completed allocation")
+
+
+def nested_construction():
+    events = []
+
+    class Meta(type):
+        def __new__(meta, name, bases, namespace):
+            events.append(name + "-before")
+            cls = type.__new__(meta, name, bases, namespace)
+            if name == "Outer":
+                Meta("Inner", (), {})
+            events.append(name + "-after")
+            return cls
+
+        def __init__(cls, name, bases, namespace):
+            events.append(name + "-init")
+
+    Meta("Outer", (), {})
+    check(
+        events
+        == [
+            "Outer-before",
+            "Inner-before",
+            "Inner-after",
+            "Inner-init",
+            "Outer-after",
+            "Outer-init",
+        ],
+        "nested construction order",
+    )
+
+
+def class_body_init():
+    events = []
+
+    class Meta(type):
+        def __init__(cls, name, bases, namespace):
+            events.append("meta-init")
+
+    class Sample(metaclass=Meta):
+        def __init__(self):
+            events.append("instance-init")
+
+    check(events == ["meta-init"], "class body init must not shadow metaclass init")
+    Sample()
+    check(events == ["meta-init", "instance-init"], "instance init preserved")
+
+
+def descriptor_init():
+    events = []
+
+    class Static(type):
+        @staticmethod
+        def __init__(name, bases, namespace):
+            events.append(("static", name))
+
+    class Class(type):
+        @classmethod
+        def __init__(meta, name, bases, namespace):
+            check(meta is Class, "classmethod metaclass binding")
+            events.append(("class", name))
+
+    Static("First", (), {})
+    Class("Second", (), {})
+    check(events == [("static", "First"), ("class", "Second")], "init descriptor binding")
+
+
+def dynamic_factory():
+    events = []
+
+    class Other(type):
+        def __init__(cls, name, bases, namespace):
+            events.append(("other-init", name))
+
+    existing = type.__new__(Other, "Existing", (), {})
+
+    class Meta(type):
+        def __new__(meta, name, bases, namespace):
+            events.append(("new", name))
+            return existing
+
+    base = type.__new__(Meta, "Base", (), {})
+    events[:] = []
+    result = type("Requested", (base,), {})
+    check(result is existing, "factory result identity")
+    check(
+        events == [("new", "Requested"), ("other-init", "Requested")], "requested type eligibility"
+    )
+
+
+def selected_subclass():
+    events = []
+
+    class Meta(type):
+        def __new__(meta, name, bases, namespace):
+            return existing
+
+        def __init__(cls, name, bases, namespace):
+            events.append(name)
+
+    class Derived(Meta):
+        pass
+
+    existing = type.__new__(Meta, "Existing", (), {})
+    base = type.__new__(Derived, "Base", (), {})
+    events[:] = []
+    result = Meta("Requested", (base,), {})
+    check(
+        result is existing and events == ["Requested"],
+        "selected subtype must not narrow eligibility",
+    )
+
+
+TESTS = (
+    class_order,
+    inherited_order,
+    type_factory,
+    allocation_only,
+    discarded_allocation,
+    existing_result,
+    returned_subclass_metaclass,
+    new_exception,
+    init_return,
+    init_exception,
+    nested_construction,
+    class_body_init,
+    descriptor_init,
+    dynamic_factory,
+    selected_subclass,
+)
+failures = []
+for test in TESTS:
+    try:
+        test()
+    except Exception as error:
+        failures.append([test.__name__, type(error).__name__, str(error)])
+print(json.dumps({"checks": len(TESTS), "failures": failures}))
+if failures:
+    raise AssertionError("metaclass lifecycle failures")

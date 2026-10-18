@@ -4,7 +4,7 @@
 __pycache__/
 *.py[cod]
 
-# Superseded local candidates. The current contribution is root/lifecycle_final/.
+# Superseded local candidates. The current contribution is root/dictionary_final/.
 /root/release_candidate/
 /root/lifecycle_candidate/
 /root/metaclass/
