@@ -1,7 +1,6 @@
 # Enum upstream investigation
 
-A local, DD-derived comparison of CPython's StrEnum, DD's original overlay and
-micropython-lib PR #980. This project is an investigation, not a published enum library.
+A local, DD-derived comparison of CPython's StrEnum, DD's original overlay, and [micropython-lib PR #980](https://github.com/micropython/micropython-lib/pull/980) by [@IhorNehrutsa](https://github.com/IhorNehrutsa). This project is an investigation, not a published enum library.
 
 - [Background](background.md)
 - [Requirements and source references](requirements.md)
