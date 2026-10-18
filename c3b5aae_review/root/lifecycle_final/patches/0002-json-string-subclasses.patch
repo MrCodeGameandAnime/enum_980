@@ -1,0 +1,33 @@
+--- a/py/obj.c
++++ b/py/obj.c
+@@ -116,6 +116,16 @@
+ }
+ 
+ void mp_obj_print_helper(const mp_print_t *print, mp_obj_t o_in, mp_print_kind_t kind) {
++    #if MICROPY_PY_JSON
++    // JSON encodes string storage, independently of a subclass's Python repr.
++    if (kind == PRINT_JSON) {
++        mp_obj_t native = mp_obj_cast_to_native_base(o_in, MP_OBJ_FROM_PTR(&mp_type_str));
++        if (native != MP_OBJ_NULL && native != o_in) {
++            mp_obj_print_helper(print, native, kind);
++            return;
++        }
++    }
++    #endif
+     // There can be data structures nested too deep, or just recursive
+     mp_cstack_check();
+     #ifndef NDEBUG
+--- a/py/objdict.c
++++ b/py/objdict.c
+@@ -95,6 +95,11 @@
+         }
+         first = false;
+         bool add_quote = MICROPY_PY_JSON && kind == PRINT_JSON && !mp_obj_is_str_or_bytes(next->key);
++        #if MICROPY_PY_JSON
++        if (add_quote && mp_obj_cast_to_native_base(next->key, MP_OBJ_FROM_PTR(&mp_type_str)) != MP_OBJ_NULL) {
++            add_quote = false;
++        }
++        #endif
+         if (add_quote) {
+             mp_print_str(print, "\"");
+         }

@@ -1,0 +1,11 @@
+{
+  "repository": "https://github.com/IhorNehrutsa/micropython-lib",
+  "branch": "enum",
+  "revision": "c3b5aaeb61c33ee13c70a6d3dfcd95a8b185e297",
+  "git_tree": "5711dd2dc7ea4691de368854f09f8837533f5038",
+  "captured_at_utc": "2026-10-18T15:19:32.995091+00:00",
+  "kind": "pinned upstream source snapshot; no changes applied",
+  "enum_sha256": "53cd3da17a41e3ba5655f5a7e2a1763250e6010f08e431d12ddf92e46aa37d89",
+  "enum_mini_sha256": "10b2ecfa7d70a051fd1b3ed4f27ee93e8631c7551a8a31dc18afe6869e5e9775",
+  "corpus_sha256": "a46873dcd1e5d24586a1674f67d3c4ee27504a1d8928f0b1ec5e422e47abbe24"
+}

@@ -1,0 +1,5 @@
+/root/upstream/
+/root/results/
+/root/build/
+__pycache__/
+*.py[cod]

@@ -1,0 +1,1100 @@
+--- a/python-stdlib/enum/enum.py
++++ b/python-stdlib/enum/enum.py
+@@ -1,6 +1,8 @@
+ # enum.py
+-# Enum implementation without metaclasses
++# Enum/IntEnum containers and a runtime-backed typed StrEnum profile
+ # version="1.5.0"
++
++import builtins
+ 
+ # ==============================================================================
+ # Variable & Abbreviation Definitions:
+@@ -20,7 +22,7 @@
+ #   d       - dict / mapping: Temporary dictionary for parsed enum members.
+ #   k, v    - key, value: Key-value pair during iteration over attributes or dictionaries.
+ #   i       - item: Individual enum member instance during iteration.
+-#   __members__ - Dictionary mapping enum member instances to their raw values.
++#   __members__ - Original containers map members to values; typed StrEnum maps names to members.
+ #   s, k, o - self, key/attribute_name, other_enum (standard short parameters).
+ #   f       - function: The body function of the class being defined.
+ #   b       - bases: Tuple of base classes passed during class creation.
+@@ -187,25 +189,276 @@
+     _v_t = int
+ 
+ 
+-class StrEnum(Enum):
++class _MemberView:
++    """Read-only snapshot; no mutable mapping backing leaks through public API."""
++
++    def __init__(self, pairs):
++        object.__setattr__(self, "_pairs", tuple(pairs))
++
++    def __setattr__(self, name, value):
++        raise AttributeError("read-only member mapping")
++
++    def __delattr__(self, name):
++        raise AttributeError("read-only member mapping")
++
++    def __getitem__(self, key):
++        hash(key)
++        for name, member in self._pairs:
++            if name == key:
++                return member
++        raise KeyError(key)
++
++    def __iter__(self):
++        return (name for name, member in self._pairs)
++
++    def __len__(self):
++        return len(self._pairs)
++
++    def keys(self):
++        return tuple(self)
++
++    def values(self):
++        return tuple(member for name, member in self._pairs)
++
++    def items(self):
++        return self._pairs
++
++    def get(self, key, default=None):
++        try:
++            return self[key]
++        except KeyError:
++            return default
++
++    def copy(self):
++        return dict(self._pairs)
++
++    def __eq__(self, other):
++        try:
++            return len(self) == len(other) and all(other[k] == v for k, v in self._pairs)
++        except (TypeError, KeyError, AttributeError):
++            return False
++
++
++class _StrEnumMeta(type):
++    def __new__(meta, name, bases, namespace):
++        root = bases == (str, Enum)
++        if not root:
++            if len(bases) != 1 or bases[0] is not StrEnum:
++                raise TypeError("StrEnum requires direct single inheritance")
++            if "__members__" in namespace or "_member_map" in namespace:
++                raise TypeError("reserved enum metadata")
++        cls = type.__new__(meta, name, bases, namespace)
++        if not root:
++            _finish_str_enum(cls)
++        return cls
++
++    def __call__(cls, value=None, names=None, *, start=1):
++        if cls is StrEnum:
++            if not isinstance(value, str) or not value or names is None:
++                raise TypeError("StrEnum requires a name and members")
++            if isinstance(names, str):
++                values = {name: name.lower() for name in names.replace(",", " ").split()}
++            elif isinstance(names, dict):
++                values = dict(names)
++            else:
++                entries = list(names)
++                values = (
++                    dict(entries)
++                    if entries and isinstance(entries[0], (tuple, list))
++                    else {name: name for name in entries}
++                )
++            return _StrEnumMeta(value, (cls,), values)
++        if names is not None:
++            raise TypeError("cannot extend an enum")
++        return _str_lookup(cls, value)
++
++    def __len__(cls):
++        return len(cls._member_map)
++
++    def __iter__(cls):
++        return iter(cls._member_map)
++
++    def __getitem__(cls, name):
++        return cls.__members__[name]
++
++    def __contains__(cls, value):
++        return any(member == value for member in cls._member_map)
++
++    def __repr__(cls):
++        return "<enum '%s'>" % cls.__name__
++
++    def __setattr__(cls, name, value):
++        if "_member_map" in cls.__dict__ and (
++            name in ("__members__", "_member_map", "__new__", "__getitem__")
++            or name in cls.__members__
++        ):
++            raise AttributeError("cannot reassign enum member or metadata")
++        type.__setattr__(cls, name, value)
++
++    def __delattr__(cls, name):
++        if "_member_map" in cls.__dict__ and (
++            name in ("__members__", "_member_map", "__new__", "__getitem__")
++            or name in cls.__members__
++        ):
++            raise AttributeError("cannot delete enum member or metadata")
++        type.__delattr__(cls, name)
++
++    @property
++    def __members__(cls):
++        return _MemberView((member.name, member) for member in cls._member_map)
++
++
++class StrEnum(str, Enum, metaclass=_StrEnumMeta):
++    """String-valued members that retain their declared class on MicroPython."""
++
+     _v_t = str
+ 
+-
+-# Install builder hook
+-import builtins
+-
+-_SN = "__ENUM_STATE__"  # _STATE_NAME
+-if getattr(builtins, _SN, None):
+-    builtins.__ENUM_STATE__["base"] = Enum
+-else:
+-    _orig = builtins.__build_class__
+-
+-    # def _build_class(f, n, *b, **kw):
+-    def _bc(f, n, *b, **kw):
+-        cls = _orig(f, n, *b, **kw)
+-        return (
+-            cls() if any(isinstance(base, type) and issubclass(base, Enum) for base in b) else cls
+-        )
+-
+-    builtins.__build_class__ = _bc
+-    setattr(builtins, _SN, {"original": _orig, "base": Enum, "wrapper": _bc})
++    def __new__(cls, value=None, names=None, *, start=1):
++        if cls is StrEnum:
++            if not isinstance(value, str) or not value or names is None:
++                raise TypeError("StrEnum requires a name and members")
++            return Enum.__new__(cls, value, names, start=start)
++        return _str_lookup(cls, value)
++
++    @classmethod
++    def _i(cls):
++        return _finish_str_enum(cls)
++
++    @classmethod
++    def dump(cls):
++        values = {member.name: member.value for member in cls._i()}
++        return f"StrEnum({cls.__name__!r}, {values!r})"
++
++    def __call__(self):
++        return self.value
++
++    def __repr__(self):
++        return "<%s.%s: %r>" % (type(self).__name__, self.name, self.value)
++
++    def __setattr__(self, name, value):
++        if name in ("name", "value", "_name_", "_value_"):
++            raise AttributeError("cannot reassign enum identity")
++        object.__setattr__(self, name, value)
++
++    def __delattr__(self, name):
++        if name in ("name", "value", "_name_", "_value_"):
++            raise AttributeError("cannot delete enum identity")
++        object.__delattr__(self, name)
++
++
++def _str_lookup(cls, value=None):
++    # Retain the old optional initialization call as a no-op returning the class.
++    if "_member_map" not in cls.__dict__:
++        raise TypeError("cannot extend an enum")
++    if value is None:
++        return cls
++    if isinstance(value, cls):
++        return value
++    for member in cls._member_map:
++        if member.value == value or member.name == value:
++            return member
++    raise ValueError(f"{value!r} is not a valid {cls.__name__}")
++
++
++def _finish_str_enum(cls):
++    # Declared-class construction followed by installing canonical lookup is
++    # adapted from Dungeon Drifters' portable StrEnum, by MrCodeGameAndAnime:
++    # https://github.com/MrCodeGameandAnime/Dungeon-Drifters/blob/2fa5f9d0ca806e5e7dbd41f3ac9073465d26762b/root/portability/micropython/enum.py
++    if cls is StrEnum:
++        raise TypeError("StrEnum is a base class")
++    if "_member_map" in cls.__dict__:
++        if cls.__dict__.get("__new__") is not _str_lookup:
++            raise TypeError("_member_map is reserved for enum metadata")
++        return cls._member_map
++    if "__new__" in cls.__dict__ or "__init__" in cls.__dict__:
++        raise TypeError("custom StrEnum constructors are not supported")
++    candidates = []
++    values = set()
++    for name, value in cls.__dict__.items():
++        if name.startswith("_") or (callable(value) and not isinstance(value, str)):
++            continue
++        if not isinstance(value, str):
++            raise TypeError(f"StrEnum member {name!r} value must be str")
++        value = str(value)
++        if value in values:
++            raise ValueError(f"duplicate value {value!r} in {cls.__name__}")
++        values.add(value)
++        candidates.append((name, value))
++
++    # Native-base initialization provides allocation even though MicroPython
++    # does not expose str.__new__. This keeps the standard functional API.
++    members = {}
++    for name, value in candidates:
++        if hasattr(str, "__new__"):
++            member = str.__new__(cls, value)
++        else:
++            member = object.__new__(cls)
++            super(StrEnum, member).__init__(value)
++        object.__setattr__(member, "name", name)
++        object.__setattr__(member, "value", value)
++        setattr(cls, name, member)
++        members[member] = value
++    # MicroPython's iterator fallback loads a class's unbound __getitem__.
++    # Instances still need ordinary string indexing, hence the two arities.
++    ordered = tuple(members)
++    missing = object()
++
++    def getitem(subject, index=missing):
++        if index is missing:
++            return ordered[subject]
++        return subject.value[index]
++
++    type.__setattr__(cls, "_member_map", members)
++    type.__setattr__(cls, "__new__", _str_lookup)
++    type.__setattr__(cls, "__getitem__", getitem)
++    return members
++
++
++# Keep a cooperative dispatcher shared across fresh imports. Each registered
++# family retains its own bases and finalizer so existing imported aliases work.
++def _make_builder(families, legacy_bases, previous):
++    def build(function, name, *bases, **kwargs):
++        typed = None
++        for family in families:
++            if any(isinstance(base, type) and issubclass(base, family[1]) for base in bases):
++                typed = family
++                break
++        if typed is not None and (len(bases) != 1 or bases[0] is not typed[1]):
++            raise TypeError("StrEnum requires direct single inheritance")
++        cls = previous(function, name, *bases, **kwargs)
++        if not isinstance(cls, type):
++            return cls
++        if typed is not None:
++            typed[2](cls)
++            return cls
++        legacy = [family[0] for family in families]
++        legacy.extend(legacy_bases)
++        if any(
++            isinstance(base, type) and issubclass(base, root) for base in bases for root in legacy
++        ):
++            return cls()
++        return cls
++
++    return build
++
++
++_SN = "__ENUM_STATE__"
++try:
++    _state = __ENUM_STATE__
++except NameError:
++    _state = None
++if _state is None:
++    _state = {"original": __build_class__}
++    setattr(builtins, _SN, _state)
++if "families" not in _state:
++    _state["families"] = []
++    _state.setdefault("legacy_bases", [])
++    # Bare lookup observes the effective hook on MicroPython even when reading
++    # builtins.__build_class__ still exposes the original module attribute.
++    _state["wrapper"] = _make_builder(_state["families"], _state["legacy_bases"], __build_class__)
++    builtins.__build_class__ = _state["wrapper"]
++_old_base = _state.get("base")
++if isinstance(_old_base, type) and not any(_old_base is base for base in _state["legacy_bases"]):
++    _state["legacy_bases"].append(_old_base)
++_state["families"].append((Enum, StrEnum, _finish_str_enum))
++_state["base"] = Enum
+--- a/python-stdlib/enum/enum_mini.py
++++ b/python-stdlib/enum/enum_mini.py
+@@ -1,6 +1,8 @@
+ # enum_mini.py
+ # Minimalist Enum implementation without metaclasses
+ # version="1.5.0"
++
++import builtins
+ 
+ # ==============================================================================
+ # Variable & Abbreviation Definitions:
+@@ -99,6 +101,7 @@
+     __eq__ = classmethod(lambda cls, o: getattr(o, "_i", False) and cls._i() == o._i())
+     # Iteration yields enum member instances (keys of __members__)
+     __iter__ = classmethod(lambda cls: iter(cls._i()))
++    __len__ = classmethod(lambda cls: len(cls._i()))
+ 
+     @classmethod
+     def __setattr__(cls, k, v):
+@@ -126,21 +129,33 @@
+         return cls.__members__
+ 
+ 
+-# Install builder hook
+-import builtins
++# Share hook registration with enum.py while remaining usable on its own.
+ 
+-_SN = "__ENUM_STATE__"  # _STATE_NAME
+-if getattr(builtins, _SN, None):
+-    builtins.__ENUM_STATE__["base"] = Enum
+-else:
+-    _orig = builtins.__build_class__
+ 
+-    # def _build_class(f, n, *b, **kw):
+-    def _bc(f, n, *b, **kw):
+-        cls = _orig(f, n, *b, **kw)
+-        return (
+-            cls() if any(isinstance(base, type) and issubclass(base, Enum) for base in b) else cls
+-        )
++def _make_mini_builder(roots, previous):
++    def build(function, name, *bases, **kwargs):
++        cls = previous(function, name, *bases, **kwargs)
++        if isinstance(cls, type) and any(
++            isinstance(base, type) and issubclass(base, root) for base in bases for root in roots
++        ):
++            return cls()
++        return cls
+ 
+-    builtins.__build_class__ = _bc
+-    setattr(builtins, _SN, {"original": _orig, "base": Enum, "wrapper": _bc})
++    return build
++
++
++_SN = "__ENUM_STATE__"
++try:
++    _state = __ENUM_STATE__
++except NameError:
++    _state = None
++if _state is None:
++    _state = {"original": __build_class__}
++    setattr(builtins, _SN, _state)
++_state.setdefault("mini_bases", []).append(Enum)
++_state.setdefault("legacy_bases", []).append(Enum)
++if "families" not in _state and "mini_wrapper" not in _state:
++    _state["mini_wrapper"] = _make_mini_builder(_state["mini_bases"], __build_class__)
++    _state["wrapper"] = _state["mini_wrapper"]
++    builtins.__build_class__ = _state["wrapper"]
++_state["base"] = Enum
+--- a/python-stdlib/enum/README.md
++++ b/python-stdlib/enum/README.md
+@@ -1,116 +1,77 @@
+-# Lightweight Enum
++# Enum with a typed StrEnum profile
+ 
+-This package provides two lightweight enumeration implementations for MicroPython:
++This candidate requires patched MicroPython core support for custom metaclasses.
++Use the reviewed core series before importing this module; the typed profile is
++not supported by unmodified MicroPython 1.29.0 or 1.30.0-preview.
+ 
+-* `enum.py` provides `Enum`, `IntEnum`, and `StrEnum`, multiple forms of the
+-  functional API, lookup by name or value, iteration, and `.dump()`.
+-* `enum_mini.py` provides a smaller `Enum` implementation with class-based
+-  members, dictionary-based functional creation, lookup by name or value, and
+-  iteration.
++Required build flags:
+ 
+-Both implementations avoid metaclasses. They use a `builtins.__build_class__`
+-hook to turn classes derived from their `Enum` base into initialized enum
+-containers. Members are created lazily by `_i()` when needed; functional-API
+-enums are initialized during creation. Each member is a dynamically created
+-subclass of its raw value's type (for example, `int` or `str`), rather than an
+-instance of the enum container class. As a result, members can compare equal to
+-their raw values, and members from different enum containers can compare equal
+-when their values match.
++- `MICROPY_PY_METACLASS_INIT=1`
++- `MICROPY_PY_METACLASS_OPS=1`
++- `MICROPY_PY_METACLASS_PROPERTIES=1`
++- `MICROPY_PY_METACLASS_PREPARE=1`
+ 
+-**Important:** Both modules install a process-wide class-building hook when
+-imported. This affects class creation for classes derived from the relevant
+-`Enum` base, so use these modules with care in applications that define many
+-classes or mix implementations.
++The core prerequisite, metaclass corrections, JSON string-subclass fixes and
++mapping-input fix are separate core changes. The library contribution depends
++on them; package CI must use that patched interpreter. The package version in
++manifest.py remains the upstream version until a release is agreed.
+ 
+-## Quick start: `enum.py`
++## Typed StrEnum
+ 
+ ```python
+-from enum import Enum, IntEnum, StrEnum
++from enum import StrEnum
++import json
+ 
+-class Color(Enum):
+-    RED = 1
+-    GREEN = 2
+-    BLUE = 3
++class Mode(StrEnum):
++    FAST = "fast"
++    SLOW = "slow"
+ 
+-print(Color.RED)        # Color.RED
+-print(Color.RED.name)   # RED
+-print(Color.RED.value)  # 1
+-
+-print(Color(2))         # Color.GREEN: lookup by value
+-print(Color("RED"))     # Color.RED: lookup by name
+-print(Color["RED"])     # Color.RED: lookup by name
+-print(list(Color))      # Enum members
+-print(len(Color))       # 3
+-print(Color.dump())     # Reconstructable expression
++assert isinstance(Mode, type)
++assert type(Mode.FAST) is Mode
++assert isinstance(Mode.FAST, str)
++assert Mode("fast") is Mode.FAST
++assert Mode["FAST"] is Mode.FAST
++assert len(Mode) == 2
++assert repr(Mode.FAST) == "<Mode.FAST: 'fast'>"
++assert json.loads(json.dumps({Mode.FAST: Mode.SLOW})) == {"fast": "slow"}
+ ```
+ 
+-`enum.py` also provides constrained value types:
++Members are immediately available. Class iteration yields typed members; members
++retain normal string indexing, slicing, hashing and conversion. Declared member
++methods work. Member replacement/deletion and changes to name/value are rejected;
++ordinary helper attributes remain permitted. `__members__` is a read-only snapshot
++mapping names to members, implementing the documented mapping operations rather
++than CPython's mappingproxy type. Private implementation state is not a security
++boundary.
+ 
+-```python
+-class Priority(IntEnum):
+-    LOW = 1
+-    HIGH = 2
++Functional creation supports dictionaries, name strings, lists and name/value
++pairs. `dump()` produces a reconstructable factory expression. The existing
++no-argument initialization call, lookup by name through the call operator and
++callable members are retained extensions.
+ 
+-class Status(StrEnum):
+-    PENDING = "pending"
+-    DONE = "done"
++Supported subset: direct single inheritance from StrEnum, no custom constructors,
++no duplicate values/aliases, and no extension of an already defined enum. Member
++declaration order is not guaranteed. This is not the complete CPython enum module;
++features such as auto and Flag are outside this profile.
+ 
+-print(Priority.HIGH > 1)              # True
+-print(isinstance(Priority.LOW, int))  # True
+-print(Status.PENDING.name.upper())    # PENDING
+-print(isinstance(Status.DONE, str))   # True
+-```
++## Enum, IntEnum and the mini implementation
+ 
+-`IntEnum` values must be integers and `StrEnum` values must be strings.
+-Invalid member values raise `TypeError`.
++These retain the original initialized-container design. Their members inherit
++raw value types rather than the declared container class. Do not assume the typed
++StrEnum identity guarantees apply to these profiles.
+ 
+-### Standard Behavior (Compatible)
+-- âœ… Member access: `Color.RED`, `.name`, `.value`
+-- âœ… Member iteration: `for item in Color`
+-- âœ… `IntEnum` and `StrEnum` types with strict value checking
+-- âœ… Immutability: members cannot be modified after creation
+-- âœ… Functional API: `Enum('Name', {'KEY': value, ...})`
++Both modules install cooperative, process-wide class-builder hooks. Other hooks
++must delegate and preserve class results. Fresh imports and both module orders
++are tested; in-place execution into an existing module's globals is not qualified.
++The registry retains old imported families, and its memory cost is not benchmarked.
+ 
+-### Non-Standard Behavior
+-Key differences from CPython:
+-- **Name-based lookup via call**: `Color("RED")` works for both name and value lookup (CPython standard call only supports value lookup).
+-- **Value equality**: `Color.RED == 1` is `True` (only true for `IntEnum` in CPython).
+-- **Custom methods**: `.dump()` does not exist in stdlib `Enum`.
+-- **Callable members**: `Color.RED()` returns the value (not supported in CPython).
+-- **Instance `__len__`**: `len(Color)` works; CPython enums are not containers.
+-- **Serialization**: `dump()` for eval-based reconstruction is MicroPython-specific.
++## Tests and attribution
+ 
+-## Comparing the implementations
++Run the included tests with the required patched interpreter. The general core
++contract test skips when JSON/metaclass operators are unavailable; qualification
++requires the full check count and never treats that skip as a pass.
+ 
+-| Feature | CPython | `enum.py` | `enum_mini.py` |
+-| --- | --- | --- | --- |
+-| Enum types | `Enum`, `IntEnum`, `StrEnum` | `Enum`, `IntEnum`, `StrEnum` | `Enum` |
+-| Lookup by name | `Color["RED"]` | `Color("RED")` or `Color["RED"]` | `Color("RED")` |
+-| Lookup by value | `Color(1)` | `Color(1)` | `Color(1)` |
+-| Iteration | `for item in Color` | `for item in Color` | `for item in Color` |
+-| Iteration in `__members__` | Yes | Yes | Yes |
+-| `__members__` mapping | Name to member | Member to raw value | Member to raw value |
+-| Functional API | Dict, names string, list/tuple, or iterable | Dict, names string, list/tuple, or iterable | Dictionary only |
+-| `start` for generated integer values | Yes | Yes | No |
+-| Strict integer/string member types | `IntEnum` / `StrEnum` | `IntEnum` / `StrEnum` | Not provided |
+-| Length | Not provided | `len(Color)` | `len(Color)` |
+-| `.dump()` | No | Yes | No |
+-| Plain `Enum` member equals its raw value | No | Yes | Yes |
+-| Member is an instance of its enum class | Yes | No | No |
+-| Calling a member, e.g. `Color.RED()` | Not supported | Returns its raw value | Returns its raw value |
+-
+-## Code
+-
+-The runnable example in [`CPy/CPy.py`](CPy/CPy.py) compares basic member
+-access, lookup, iteration, equality, and immutability on CPython and
+-MicroPython.
+-Run it with `python CPy.py`.
+-
+-## Limitations
+-
+-These implementations intentionally provide a smaller API than Python's
+-standard-library `enum`. In particular, members are value-type instances, not
+-instances of their enum class; equal values can compare equal across different
+-enum classes; and enum classes do not provide the full standard-library Enum
+-semantics. Choose the full implementation when you need `IntEnum`, `StrEnum`,
+-the expanded functional API, or `.dump()`.
++This builds on IhorNehrutsa's implementation in micropython-lib PR #980. Typed
++member construction is adapted from MrCodeGameAndAnime's Dungeon Drifters StrEnum,
++linked in the source. Andrew Leech's custom-metaclass prerequisite is separately
++attributed in its original commit. Existing source notices remain intact.
+--- /dev/null
++++ b/python-stdlib/enum/test_enum_hooks.py
+@@ -0,0 +1,136 @@
++"""Cooperative hooks and fresh module imports must preserve enum behavior."""
++
++import builtins
++import json
++import sys
++
++seen = []
++original = __build_class__
++
++
++def observer(function, name, *bases, **kwargs):
++    seen.append(name)
++    return original(function, name, *bases, **kwargs)
++
++
++builtins.__build_class__ = observer
++import enum  # noqa: E402 - install the observer before importing the candidate
++
++
++def check(value, message):
++    if not value:
++        raise AssertionError(message)
++
++
++def typed(base):
++    class Mode(base):
++        FAST = "fast"
++
++    check(type(Mode.FAST) is Mode, "declared member type")
++    check(Mode("fast") is Mode.FAST, "canonical lookup")
++    return Mode
++
++
++def before_import():
++    typed(enum.StrEnum)
++    check("Mode" in seen, "pre-existing builder must still run")
++
++
++def cached_import():
++    before = __build_class__
++    import enum as again
++
++    check(again is enum, "ordinary imports are cached")
++    check(__build_class__ is before, "cached imports do not stack builders")
++
++
++def fresh_import():
++    before = __build_class__
++    previous = sys.modules["enum"]
++    try:
++        del sys.modules["enum"]
++        import enum as again
++
++        typed(again.StrEnum)
++        typed(previous.StrEnum)
++        check(__build_class__ is before, "fresh imports reuse the existing dispatcher")
++    finally:
++        sys.modules["enum"] = previous
++
++
++def later_hook():
++    before = __build_class__
++    calls = []
++
++    def later(function, name, *bases, **kwargs):
++        calls.append(name)
++        return before(function, name, *bases, **kwargs)
++
++    builtins.__build_class__ = later
++    previous = sys.modules["enum"]
++    try:
++        del sys.modules["enum"]
++        import enum as again
++
++        typed(again.StrEnum)
++        check("Mode" in calls, "a later cooperative hook must run")
++        check(__build_class__ is later, "reload must not overwrite a later hook")
++    finally:
++        builtins.__build_class__ = before
++        sys.modules["enum"] = previous
++
++
++def mini_after_full():
++    import enum_mini
++
++    class Mini(enum_mini.Enum):
++        A = 1
++
++    check(Mini.A.name == "A" and len(Mini) == 1, "mini container must initialize")
++    typed(enum.StrEnum)
++    previous = sys.modules["enum"]
++    try:
++        del sys.modules["enum"]
++        import enum as again
++
++        class AnotherMini(enum_mini.Enum):
++            B = 2
++
++        check(
++            AnotherMini.B.value == 2 and len(AnotherMini) == 1, "mini alias survives full reload"
++        )
++        typed(again.StrEnum)
++    finally:
++        sys.modules["enum"] = previous
++
++
++def mixin_rejection():
++    class Constructor:
++        def __new__(cls, value):
++            return "wrong type"
++
++    try:
++
++        class Invalid(Constructor, enum.StrEnum):
++            FAST = "fast"
++    except TypeError:
++        return
++    raise AssertionError("unsupported constructor mixins must fail explicitly")
++
++
++failures = []
++for test in (
++    before_import,
++    cached_import,
++    fresh_import,
++    later_hook,
++    mini_after_full,
++    mixin_rejection,
++):
++    try:
++        test()
++    except Exception as error:
++        failures.append([test.__name__, type(error).__name__, str(error)])
++print(json.dumps({"checks": 6, "failures": failures}))
++if failures:
++    raise AssertionError("Hook contract failures: " + str(failures))
+--- /dev/null
++++ b/python-stdlib/enum/test_enum_hooks_mini_first.py
+@@ -0,0 +1,19 @@
++"""The mini implementation may be loaded before the full module."""
++
++import enum_mini
++import enum
++
++
++class Mini(enum_mini.Enum):
++    A = 1
++
++
++class Mode(enum.StrEnum):
++    FAST = "fast"
++
++
++if Mini.A.name != "A" or len(Mini) != 1:
++    raise AssertionError("mini-first container initialization")
++if type(Mode.FAST) is not Mode or Mode("fast") is not Mode.FAST:
++    raise AssertionError("typed class after mini-first import")
++print("mini-first import checks passed")
+--- a/python-stdlib/enum/test_enum_mini.py
++++ b/python-stdlib/enum/test_enum_mini.py
+@@ -104,4 +104,4 @@
+ 
+ 
+ if __name__ == "__main__":
+-    unittest.main()
+\ No newline at end of file
++    unittest.main()
+--- /dev/null
++++ b/python-stdlib/enum/test_strenum_identity.py
+@@ -0,0 +1,110 @@
++"""Declared-class StrEnum contracts shared with native CPython.
++
++Run native CPython with -I so the adjacent MicroPython overlay is not imported.
++Run MicroPython with this directory on its import path.
++"""
++
++import json
++from enum import Enum, StrEnum
++
++
++def check(value, message):
++    if not value:
++        raise AssertionError(message)
++
++
++def make_mode():
++    class Mode(StrEnum):
++        FAST = "fast"
++        SLOW = "slow"
++
++    return Mode
++
++
++def identity():
++    mode = make_mode()
++    check(isinstance(mode, type), "declaration must remain a class")
++    check(isinstance(mode.FAST, mode), "member must belong to its declared class")
++    check(type(mode.FAST) is mode, "member type must be the declared class")
++    check(type(mode.SLOW) is mode, "members must share the declared type")
++    check(isinstance(mode.FAST, str), "member must also be a string")
++    check(isinstance(mode.FAST, StrEnum), "member must belong to StrEnum")
++    check(isinstance(mode.FAST, Enum), "member must belong to Enum")
++    check(not isinstance("fast", mode), "raw strings are not enum members")
++    other = make_mode()
++    check(not isinstance(other.FAST, mode), "different enum classes stay distinct")
++
++
++def immediate():
++    mode = make_mode()
++    check(mode.FAST.name == "FAST", "name available immediately")
++    check(mode.FAST.value == "fast", "value available immediately")
++
++
++def lookup():
++    mode = make_mode()
++    check(mode("fast") is mode.FAST, "raw lookup must be canonical")
++    check(mode(mode.FAST) is mode.FAST, "member lookup must preserve identity")
++    check(mode("slow") is mode.SLOW, "lookup must distinguish members")
++    try:
++        mode("missing")
++    except ValueError:
++        pass
++    else:
++        raise AssertionError("unknown values must raise ValueError")
++
++
++def string_operations():
++    mode = make_mode()
++    member = mode.FAST
++    check(str(member) == "fast", "string conversion")
++    check(member == "fast" and "fast" == member, "string equality")
++    check(member.upper() == "FAST" and member + "!" == "fast!", "string operations")
++    check(member[0] == "f" and member[1:] == "ast", "native string indexing and slicing")
++    check(hash(member) == hash("fast"), "string hash")
++    check({member: 1}["fast"] == 1, "enum-key raw lookup")
++    check(json.loads(json.dumps(member)) == "fast", "JSON must encode a string value")
++
++
++def methods_and_unrelated_classes():
++    class Label(StrEnum):
++        FAST = "fast"
++
++        def describe(self):
++            return self.name + ":" + self.value
++
++    check(Label.FAST.describe() == "FAST:fast", "declared member methods")
++
++    class Ordinary:
++        VALUE = "ordinary"
++
++    check(Ordinary.VALUE == "ordinary", "ordinary class values")
++    check(not hasattr(Ordinary, "__members__"), "ordinary classes must not be finalized")
++
++
++def class_iteration():
++    mode = make_mode()
++    values = list(mode)
++    check(len(values) == 2, "class iteration member count")
++    check(mode.FAST in mode and "fast" in mode, "class membership")
++    check(any(value is mode.FAST for value in values), "class iteration first member")
++    check(any(value is mode.SLOW for value in values), "class iteration second member")
++    check(list(mode.FAST) == ["f", "a", "s", "t"], "string member iteration")
++
++
++failures = []
++for test in (
++    identity,
++    immediate,
++    lookup,
++    string_operations,
++    methods_and_unrelated_classes,
++    class_iteration,
++):
++    try:
++        test()
++    except Exception as error:
++        failures.append([test.__name__, type(error).__name__, str(error)])
++print(json.dumps({"checks": 6, "failures": failures}))
++if failures:
++    raise AssertionError("StrEnum contract failures: " + str(failures))
+--- /dev/null
++++ b/python-stdlib/enum/test_strenum_profile.py
+@@ -0,0 +1,142 @@
++"""MicroPython-specific factory and supported-profile regression checks."""
++
++import json
++from enum import StrEnum
++
++
++def check(value, message):
++    if not value:
++        raise AssertionError(message)
++
++
++def raises(error_type, function):
++    try:
++        function()
++    except error_type:
++        return
++    raise AssertionError("expected " + error_type.__name__)
++
++
++def factory():
++    for names in (
++        {"FAST": "fast", "SLOW": "slow"},
++        "FAST SLOW",
++        ["FAST", "SLOW"],
++        [("FAST", "fast"), ("SLOW", "slow")],
++    ):
++        mode = StrEnum("Mode", names)
++        check(isinstance(mode, type), "factory must return a class")
++        check(type(mode.FAST) is mode, "factory must create declared-class members")
++        check(isinstance(mode.FAST, str), "factory members are strings")
++        check(mode(mode.FAST.value) is mode.FAST, "factory value lookup")
++        check(mode(mode.FAST) is mode.FAST, "factory member lookup")
++
++
++def original_factory_syntax():
++    mode = StrEnum("Mode", {"FAST": "fast", "SLOW": "slow"})
++    check(type(mode.FAST) is mode, "direct factory declared type")
++    check(mode("fast") is mode.FAST, "direct factory lookup")
++    mode = StrEnum(value="Mode", names="FAST SLOW")
++    check(type(mode.FAST) is mode and mode.FAST.value == "fast", "keyword factory")
++
++
++def dump_roundtrip():
++    for name in ("Mode", "Mode'quoted"):
++        mode = StrEnum(name, {"FAST": "fast"})
++        restored = eval(mode.dump())
++        check(type(restored.FAST) is restored, "dump must restore declared-class members")
++        check(restored.FAST.value == mode.FAST.value, "dump value")
++
++
++def bad_definitions():
++    def duplicate():
++        class Duplicate(StrEnum):
++            A = "same"
++            B = "same"
++
++    def invalid():
++        class Invalid(StrEnum):
++            A = 1
++
++    raises(ValueError, duplicate)
++    raises(TypeError, invalid)
++    raises(TypeError, lambda: StrEnum("Invalid", {"A": 1}))
++    raises(ValueError, lambda: StrEnum("Invalid", {"A": "same", "B": "same"}))
++
++
++def members_are_readonly():
++    class Mode(StrEnum):
++        FAST = "fast"
++
++    raises(AttributeError, lambda: setattr(Mode.FAST, "name", "WRONG"))
++    raises(AttributeError, lambda: setattr(Mode.FAST, "value", "wrong"))
++    raises(AttributeError, lambda: delattr(Mode.FAST, "value"))
++    check(Mode.FAST() == "fast", "legacy callable-member extension")
++    check(Mode() is Mode, "legacy initialization call returns the class")
++    check(Mode("FAST") is Mode.FAST, "legacy name lookup")
++
++
++def no_finalized_subclassing():
++    class Base(StrEnum):
++        A = "a"
++
++    def extend():
++        class Child(Base):
++            B = "b"
++
++    raises(TypeError, extend)
++    raises(TypeError, lambda: Base("Child", {"B": "b"}))
++    raises(TypeError, lambda: type("Child", (Base,), {}))
++
++
++def constructors_are_rejected():
++    def custom_init():
++        class Custom(StrEnum):
++            A = "a"
++
++            def __init__(self, value):
++                pass
++
++    def reserved_members():
++        class Custom(StrEnum):
++            __members__ = {}
++            A = "a"
++
++    raises(TypeError, reserved_members)
++    raises(TypeError, custom_init)
++    raises(TypeError, lambda: StrEnum(None, {"A": "a"}))
++
++
++def string_subclass_values():
++    source = StrEnum("Source", {"FAST": "fast"})
++    for names in ({"A": "fast", "B": source.FAST}, {"A": source.FAST, "B": "fast"}):
++        raises(ValueError, lambda: StrEnum("Duplicate", names))
++    mode = StrEnum("Mode", {"FAST": source.FAST})
++    check(type(mode.FAST.value) is str, "stored value is a plain string")
++
++
++def special_json_values():
++    for text in ('a"b', "line\nbreak", "back\\slash", "snowman \u2603"):
++        mode = StrEnum("Mode", {"VALUE": text})
++        check(json.loads(json.dumps({"mode": mode.VALUE}))["mode"] == text, "JSON escapes")
++
++
++failures = []
++for test in (
++    factory,
++    original_factory_syntax,
++    dump_roundtrip,
++    bad_definitions,
++    members_are_readonly,
++    no_finalized_subclassing,
++    constructors_are_rejected,
++    string_subclass_values,
++    special_json_values,
++):
++    try:
++        test()
++    except Exception as error:
++        failures.append([test.__name__, type(error).__name__, str(error)])
++print(json.dumps({"checks": 9, "failures": failures}))
++if failures:
++    raise AssertionError("StrEnum profile failures: " + str(failures))
+--- /dev/null
++++ b/python-stdlib/enum/test_full_parity.py
+@@ -0,0 +1,92 @@
++"""Require the full typed profile; run natively or with the reviewed enum profile."""
++
++import json
++from enum import StrEnum
++
++
++def check(value, message):
++    if not value:
++        raise AssertionError(message)
++
++
++def raises(kind, operation):
++    try:
++        operation()
++    except kind:
++        return
++    raise AssertionError("expected " + kind.__name__)
++
++
++def mode():
++    class Mode(StrEnum):
++        FAST = "fast"
++        SLOW = "slow"
++
++    return Mode
++
++
++def operators():
++    cls = mode()
++    check(isinstance(cls, type) and type(cls.FAST) is cls, "declared type")
++    check(len(cls) == 2, "class length")
++    check(cls["FAST"] is cls.FAST, "canonical subscription")
++    raises(KeyError, lambda: cls["missing"])
++    raises(KeyError, lambda: cls[3])
++    raises(TypeError, lambda: cls[[]])
++    check(set(cls) == {cls.FAST, cls.SLOW}, "class iteration")
++    check(cls("fast") is cls.FAST, "canonical value lookup")
++
++
++def protection():
++    cls = mode()
++    raises(AttributeError, lambda: setattr(cls, "FAST", "changed"))
++    raises(AttributeError, lambda: delattr(cls, "FAST"))
++    raises(AttributeError, lambda: setattr(cls.FAST, "name", "changed"))
++    raises(AttributeError, lambda: delattr(cls.FAST, "value"))
++    cls.helper = 3
++    check(cls.helper == 3, "allow unrelated helper")
++    del cls.helper
++    mapping = cls.__members__
++    check(mapping["FAST"] is cls.FAST, "public member mapping")
++
++    def replace_mapping():
++        mapping["FAST"] = cls.SLOW
++
++    raises(TypeError, replace_mapping)
++    raises(AttributeError, lambda: mapping.clear())
++    raises(AttributeError, lambda: setattr(cls, "__members__", {}))
++    raises(AttributeError, lambda: delattr(cls, "__members__"))
++    check(dict(mapping) == {"FAST": cls.FAST, "SLOW": cls.SLOW}, "mapping conversion")
++    check(mapping.get("missing", 3) == 3, "mapping get default")
++    cls.FAST.helper = 3
++    check(cls.FAST.helper == 3, "member helper allowed")
++    del cls.FAST.helper
++    check(cls["FAST"] is cls.FAST and len(cls) == 2, "metadata remains intact")
++
++
++def representations():
++    cls = mode()
++    check(repr(cls) == "<enum 'Mode'>", "class repr")
++    check(repr(cls.FAST) == "<Mode.FAST: 'fast'>", "member repr")
++    check(str(cls.FAST) == "fast", "member str")
++    check(repr([cls.FAST]) == "[<Mode.FAST: 'fast'>]", "nested repr")
++
++
++def serialization():
++    for raw in ("fast", 'a"b\\c\n\t', "", "caf\u00e9", "\x01"):
++        cls = StrEnum("Mode", {"FAST": raw})
++        check(type(cls.FAST) is cls, "factory typed member")
++        check(json.loads(json.dumps(cls.FAST)) == raw, "JSON scalar")
++        check(json.loads(json.dumps([cls.FAST])) == [raw], "JSON list")
++        check(json.loads(json.dumps({cls.FAST: cls.FAST})) == {raw: raw}, "JSON keys and values")
++
++
++failures = []
++for test in (operators, protection, representations, serialization):
++    try:
++        test()
++    except Exception as error:
++        failures.append([test.__name__, type(error).__name__, str(error)])
++print(json.dumps({"checks": 4, "failures": failures}))
++if failures:
++    raise AssertionError("enum parity failures")
+--- a/tools/ci.sh
++++ b/tools/ci.sh
+@@ -68,6 +68,11 @@
+         python-stdlib/curses.ascii/test_curses_ascii.py \
+         python-stdlib/enum/test_enum.py \
+         python-stdlib/enum/test_enum_mini.py \
++        python-stdlib/enum/test_strenum_identity.py \
++        python-stdlib/enum/test_strenum_profile.py \
++        python-stdlib/enum/test_enum_hooks.py \
++        python-stdlib/enum/test_enum_hooks_mini_first.py \
++        python-stdlib/enum/test_full_parity.py \
+         python-stdlib/functools/test_partial.py \
+         python-stdlib/functools/test_reduce.py \
+         python-stdlib/functools/test_cache.py \

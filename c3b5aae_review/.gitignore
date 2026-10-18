@@ -1,0 +1,15 @@
+/root/upstream/
+/root/results/
+/root/build/
+__pycache__/
+*.py[cod]
+
+# Superseded local candidates. The current contribution is root/lifecycle_final/.
+/root/release_candidate/
+/root/lifecycle_candidate/
+/root/metaclass/
+/root/patches/
+
+# Generated local snapshot metadata and absolute-path application records.
+/root/candidate.json
+**/application-check.json
