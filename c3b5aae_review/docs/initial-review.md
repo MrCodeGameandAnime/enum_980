@@ -50,8 +50,6 @@ not a claim of full CPython enum compatibility or a drop-in 1.5 replacement.
 - Native CPython 3.12.14: five shared contract groups pass normally and optimized.
 - Actual MicroPython 1.29.0 Windows: five shared groups and six profile groups
   pass normally and optimized.
-- Experimental MicroPython 1.28.0-preview Windows: the same groups pass normally
-  and optimized; it is separate from the stock 1.29 qualification.
 - Existing 13-test enum suite passes normally and optimized on stock 1.29.
 - Existing mini suite has an unchanged pre-existing len(Color) failure. Its
   unittest runner exits zero despite that error; exit status alone is insufficient.
@@ -64,11 +62,11 @@ are claimed for this candidate.
 
 ## Review locations
 
-- Checkout: `enum_980/root/build/pr980-patch/`.
+- Checkout: `enum_980/c3b5aae_review/root/upstream/`.
 - Candidate source: `python-stdlib/enum/enum.py` inside that checkout.
 - Candidate docs: `python-stdlib/enum/README.md`.
 - Shared checks: `python-stdlib/enum/test_strenum_identity.py`.
 - Profile checks: `python-stdlib/enum/test_strenum_profile.py`.
-- Patch and local evidence: `enum_980/root/results/strenum-patch/`.
+- Patch and local evidence: `enum_980/c3b5aae_review/root/results/`.
 
 Next action is review with the user. No push or PR until explicitly authorized.

@@ -1,6 +1,0 @@
-<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
-  <PropertyGroup><FrozenManifest></FrozenManifest></PropertyGroup>
-  <ItemDefinitionGroup><ClCompile>
-    <PreprocessorDefinitions>MICROPY_PY_METACLASS_INIT=1;MICROPY_PY_METACLASS_OPS=1;MICROPY_PY_METACLASS_PROPERTIES=1;MICROPY_PY_METACLASS_PREPARE=1;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-  </ClCompile></ItemDefinitionGroup>
-</Project>

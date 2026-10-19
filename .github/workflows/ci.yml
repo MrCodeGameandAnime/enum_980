@@ -18,7 +18,7 @@ env:
 
 jobs:
   verify:
-    name: CPython and both MicroPython builds
+    name: CPython and stock MicroPython
     runs-on: windows-2025-vs2026
     timeout-minutes: 30
     defaults:
@@ -70,25 +70,6 @@ jobs:
 
       - name: Run stock three-way comparison
         run: python -B root/src/compare.py --micropython "$env:MICROPYTHON_EXECUTABLE" --out root/results/stock
-
-      - name: Prepare pinned experimental sources
-        run: python -B root/src/prepare_pr1061.py
-
-      - name: Build experimental MicroPython
-        run: |
-          ./root/src/build-pr1061.ps1 -Python (Get-Command python).Source -MSBuild $env:MSBUILD_PATH *> root/results/ci/experimental-build.log
-          $buildExit = $LASTEXITCODE
-          Get-Content root/results/ci/experimental-build.log -Tail 40
-          if ($buildExit -ne 0) { exit $buildExit }
-
-      - name: Probe metaclass features and run experimental comparison
-        run: python -B root/src/check_pr1061.py
-
-      - name: Collect experimental reports
-        if: success()
-        run: |
-          New-Item -ItemType Directory -Force root/results/experimental | Out-Null
-          Copy-Item docs/pr1061-comparison.md, docs/pr1061-results.json root/results/experimental/
 
       - name: Retain reports and logs
         if: always()

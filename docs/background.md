@@ -10,8 +10,6 @@ This investigation grew out of Dungeon Drifters' MicroPython portability work.
    validators and existing tests. The source census records 38 classes and 231 members.
 4. The [three-way comparison](comparison.md) ran the same synthetic observations
    against CPython, DD's unchanged overlay and the pinned #980 implementation.
-5. The [#1061 evaluation](pr1061-comparison.md) added its proposed core runtime,
-   with separate results and same-runtime controls.
 
 The original audit and supplied scripts are local historical research material,
 not distributed with this repository. Their relevant conclusions are summarized
