@@ -65,6 +65,63 @@ jobs:
           $runtime = (Resolve-Path root/build/stock/ports/windows/build-standard/ReleaseWin32/micropython.exe).Path
           "MICROPYTHON_EXECUTABLE=$runtime" | Add-Content $env:GITHUB_ENV
 
+      - name: Prepare pinned Python package-test dependencies
+        shell: python
+        run: |
+          import hashlib
+          import os
+          from pathlib import Path
+          from urllib.request import urlopen
+
+          revision = "c3b5aaeb61c33ee13c70a6d3dfcd95a8b185e297"
+          base = f"https://raw.githubusercontent.com/IhorNehrutsa/micropython-lib/{revision}/"
+          dependencies = [
+              ("python-stdlib/unittest/unittest/__init__.py", "unittest/__init__.py",
+               "686ada8a1f0ecd19e0cec4927a6c1c4b24a0f78bfaa2433e5a8d7769b567e51c"),
+              ("python-stdlib/traceback/traceback.py", "traceback.py",
+               "4edeb87713b415c1d312db6f1404842ed1067443afa0026f3eed750c5ac6e1e8"),
+          ]
+          library = Path(os.environ["RUNNER_TEMP"]) / "enum980-test-lib"
+          for source, destination, expected in dependencies:
+              with urlopen(base + source, timeout=30) as response:
+                  data = response.read()
+              if hashlib.sha256(data).hexdigest() != expected:
+                  raise SystemExit(f"Dependency hash mismatch: {source}")
+              target = library / destination
+              target.parent.mkdir(parents=True, exist_ok=True)
+              target.write_bytes(data)
+              print(f"Verified pinned test dependency: {source}", flush=True)
+          with open(os.environ["GITHUB_ENV"], "a", encoding="utf-8") as output:
+              output.write(f"ENUM_TEST_LIB={library}\n")
+
+      - name: Run candidate package entry points on stock MicroPython (normal and optimized)
+        shell: python
+        working-directory: c3b5aae_candidate/python-stdlib/enum
+        run: |
+          import os
+          import re
+          import subprocess
+
+          runtime = os.environ["MICROPYTHON_EXECUTABLE"]
+          environment = os.environ.copy()
+          environment["MICROPYPATH"] = os.pathsep.join(["", ".frozen", os.environ["ENUM_TEST_LIB"]])
+          print("Candidate checkout:", os.environ["GITHUB_SHA"], flush=True)
+          for mode, options in (("normal", []), ("optimized", ["-O2"])):
+              for name in ("test_enum.py", "test_enum_mini.py"):
+                  command = [runtime, *options, name]
+                  print(f"::group::{name} ({mode})", flush=True)
+                  print("COMMAND:", subprocess.list2cmdline(command), flush=True)
+                  result = subprocess.run(command, env=environment, capture_output=True, text=True, timeout=120)
+                  print(result.stdout, end="", flush=True)
+                  print(result.stderr, end="", flush=True)
+                  print("::endgroup::", flush=True)
+                  output = result.stdout + result.stderr
+                  ran = re.search(r"(?m)^Ran [1-9][0-9]* tests?\s*$", output)
+                  success = re.search(r"(?m)^OK\s*$", output)
+                  failure = re.search(r"(?m)^(?:FAILED|FAIL|ERROR|Traceback)\b", output)
+                  if result.returncode != 0 or not ran or not success or failure:
+                      raise SystemExit(f"Package validation failed: {name} ({mode}), exit {result.returncode}")
+
       - name: Run harness tests with MicroPython integration enabled
         run: python -B -m unittest discover -s root/tests -v
 
