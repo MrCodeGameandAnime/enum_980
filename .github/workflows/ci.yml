@@ -136,3 +136,94 @@ jobs:
           path: root/results/
           if-no-files-found: warn
           retention-days: 14
+
+  unix:
+    name: Candidate on stock MicroPython 1.29.0 Unix
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - name: Check out investigation
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          persist-credentials: false
+
+      - name: Set up CPython 3.12
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7
+        with:
+          python-version: '3.12'
+
+      - name: Check out stock MicroPython 1.29.0
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          repository: micropython/micropython
+          ref: 0fd6c573ea815774668bbb16b8e197c8822368b2 # v1.29.0
+          path: root/build/stock-unix
+          persist-credentials: false
+
+      - name: Build unmodified stock Unix port
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y --no-install-recommends build-essential pkg-config libffi-dev libssl-dev
+          make -C root/build/stock-unix/mpy-cross -j2
+          make -C root/build/stock-unix/ports/unix submodules
+          make -C root/build/stock-unix/ports/unix -j2
+          runtime="$(realpath root/build/stock-unix/ports/unix/build-standard/micropython)"
+          "$runtime" -c 'import sys; print(sys.version); print(sys.implementation)'
+          echo "MICROPYTHON_EXECUTABLE=$runtime" >> "$GITHUB_ENV"
+
+      - name: Prepare pinned Python package-test dependencies
+        shell: python
+        run: |
+          import hashlib
+          import os
+          from pathlib import Path
+          from urllib.request import urlopen
+
+          revision = "c3b5aaeb61c33ee13c70a6d3dfcd95a8b185e297"
+          base = f"https://raw.githubusercontent.com/IhorNehrutsa/micropython-lib/{revision}/"
+          dependencies = [
+              ("python-stdlib/unittest/unittest/__init__.py", "unittest/__init__.py",
+               "686ada8a1f0ecd19e0cec4927a6c1c4b24a0f78bfaa2433e5a8d7769b567e51c"),
+              ("python-stdlib/traceback/traceback.py", "traceback.py",
+               "4edeb87713b415c1d312db6f1404842ed1067443afa0026f3eed750c5ac6e1e8"),
+          ]
+          library = Path(os.environ["RUNNER_TEMP"]) / "enum980-test-lib"
+          for source, destination, expected in dependencies:
+              with urlopen(base + source, timeout=30) as response:
+                  data = response.read()
+              if hashlib.sha256(data).hexdigest() != expected:
+                  raise SystemExit(f"Dependency hash mismatch: {source}")
+              target = library / destination
+              target.parent.mkdir(parents=True, exist_ok=True)
+              target.write_bytes(data)
+              print(f"Verified pinned test dependency: {source}", flush=True)
+          with open(os.environ["GITHUB_ENV"], "a", encoding="utf-8") as output:
+              output.write(f"ENUM_TEST_LIB={library}\n")
+
+      - name: Run candidate package entry points on stock MicroPython (normal and optimized)
+        shell: python
+        working-directory: c3b5aae_candidate/python-stdlib/enum
+        run: |
+          import os
+          import re
+          import subprocess
+
+          runtime = os.environ["MICROPYTHON_EXECUTABLE"]
+          environment = os.environ.copy()
+          environment["MICROPYPATH"] = os.pathsep.join(["", ".frozen", os.environ["ENUM_TEST_LIB"]])
+          print("Candidate checkout:", os.environ["GITHUB_SHA"], flush=True)
+          for mode, options in (("normal", []), ("optimized", ["-O2"])):
+              for name in ("test_enum.py", "test_enum_mini.py"):
+                  command = [runtime, *options, name]
+                  print(f"::group::{name} ({mode})", flush=True)
+                  print("COMMAND:", subprocess.list2cmdline(command), flush=True)
+                  result = subprocess.run(command, env=environment, capture_output=True, text=True, timeout=120)
+                  print(result.stdout, end="", flush=True)
+                  print(result.stderr, end="", flush=True)
+                  print("::endgroup::", flush=True)
+                  output = result.stdout + result.stderr
+                  ran = re.search(r"(?m)^Ran [1-9][0-9]* tests?\s*$", output)
+                  success = re.search(r"(?m)^OK\s*$", output)
+                  failure = re.search(r"(?m)^(?:FAILED|FAIL|ERROR|Traceback)\b", output)
+                  if result.returncode != 0 or not ran or not success or failure:
+                      raise SystemExit(f"Package validation failed: {name} ({mode}), exit {result.returncode}")
